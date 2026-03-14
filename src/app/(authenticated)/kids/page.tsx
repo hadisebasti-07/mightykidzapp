@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, SlidersHorizontal, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 export default function KidsPage() {
   const kids = getKids();
@@ -14,9 +15,11 @@ export default function KidsPage() {
         title="Kid Profiles"
         description="Manage profiles for all children in the ministry."
       >
-        <Button>
-          <PlusCircle />
-          Add Kid
+        <Button asChild>
+          <Link href="/kids/new">
+            <PlusCircle />
+            Add Kid
+          </Link>
         </Button>
       </PageHeader>
       <div className="flex items-center gap-4">
