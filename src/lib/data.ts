@@ -188,6 +188,41 @@ export const volunteers: Volunteer[] = [
   },
 ];
 
+export const addKid = (data: {
+  firstName: string;
+  lastName: string;
+  nickname?: string;
+  dateOfBirth: Date;
+  gender: 'Male' | 'Female';
+  parentName: string;
+  parentPhone: string;
+  allergies?: string;
+  medicalNotes?: string;
+}) => {
+  const newId = `k${Date.now()}`;
+  const birthDate = data.dateOfBirth;
+
+  const newKid: Kid = {
+    id: newId,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    nickname: data.nickname || '',
+    dateOfBirth: birthDate.toISOString().split('T')[0],
+    gender: data.gender,
+    parentName: data.parentName,
+    parentPhone: data.parentPhone,
+    allergies: data.allergies || '',
+    medicalNotes: data.medicalNotes || '',
+    photoUrl: `https://picsum.photos/seed/${newId}/400/400`,
+    coinsBalance: 0,
+    totalAttendance: 0,
+    birthdayMonth: birthDate.getMonth() + 1,
+    createdAt: new Date().toISOString().split('T')[0],
+  };
+
+  kids.unshift(newKid);
+};
+
 export const getKids = (): Kid[] => kids;
 export const getKidById = (id: string): Kid | undefined =>
   kids.find((k) => k.id === id);

@@ -29,6 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
+import { addKid } from '@/lib/data';
 
 const kidFormSchema = z.object({
   firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
@@ -67,12 +68,11 @@ export function KidForm() {
   });
 
   function onSubmit(data: KidFormValues) {
+    addKid(data);
     toast({
       title: 'Kid Profile Created',
       description: `The profile for ${data.firstName} ${data.lastName} has been created.`,
     });
-    // In a real app, you would save the data to a database here.
-    console.log('New kid data:', data);
     router.push('/kids');
   }
 
@@ -114,7 +114,7 @@ export function KidForm() {
             <FormItem>
                 <FormLabel>Nickname (Optional)</FormLabel>
                 <FormControl>
-                <Input placeholder="Li" {...field} value={field.value ?? ''} />
+                <Input placeholder="Li" {...field} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
@@ -149,6 +149,9 @@ export function KidForm() {
                     <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
+                      captionLayout="dropdown-buttons"
+                      fromYear={new Date().getFullYear() - 18}
+                      toYear={new Date().getFullYear()}
                       selected={field.value}
                       onSelect={field.onChange}
                       disabled={(date) =>
@@ -219,7 +222,7 @@ export function KidForm() {
             <FormItem>
                 <FormLabel>Allergies (Optional)</FormLabel>
                 <FormControl>
-                <Textarea placeholder="Peanuts, gluten, etc." {...field} value={field.value ?? ''} />
+                <Textarea placeholder="Peanuts, gluten, etc." {...field} />
                 </FormControl>
                 <FormDescription>
                     List any known allergies.
@@ -235,7 +238,7 @@ export function KidForm() {
             <FormItem>
                 <FormLabel>Medical Notes (Optional)</FormLabel>
                 <FormControl>
-                <Textarea placeholder="Asthma, etc." {...field} value={field.value ?? ''} />
+                <Textarea placeholder="Asthma, etc." {...field} />
                 </FormControl>
                  <FormDescription>
                     List any important medical information.
