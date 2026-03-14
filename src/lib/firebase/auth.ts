@@ -1,4 +1,7 @@
-import { initializeApp } from 'firebase/app';
+'use client';
+
+import { initializeApp, getApp, getApps } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import { 
   getAuth,
   onAuthStateChanged,
@@ -8,10 +11,12 @@ import {
 } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase only once
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Get a reference to the Firebase auth service
+// Get a reference to the Firebase services
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-export { auth, onAuthStateChanged, signInWithEmailAndPassword, signOut, type User };
+export { auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut };
+export type { User };

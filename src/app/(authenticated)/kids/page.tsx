@@ -6,8 +6,9 @@ import { PlusCircle, SlidersHorizontal, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-export default function KidsPage() {
-  const kids = getKids();
+export default async function KidsPage() {
+  const kids = await getKids();
+  console.log(`KidsPage: Fetched kids on page load. Total kids: ${kids.length}`);
 
   return (
     <div className="flex flex-col gap-8">

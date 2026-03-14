@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getGifts, getKids } from '@/lib/data';
 import { GiftCard } from '@/components/store/gift-card';
 import { PageHeader } from '@/components/page-header';
@@ -19,10 +19,18 @@ import {
 
 export default function StorePage() {
   const gifts = getGifts();
-  const kids = getKids();
+  const [kids, setKids] = useState<Kid[]>([]);
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   const [isRedeemOpen, setRedeemOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchKids = async () => {
+      const kidsData = await getKids();
+      setKids(kidsData);
+    };
+    fetchKids();
+  }, []);
 
   const handleRedeem = (gift: Gift) => {
     if (selectedKid) {

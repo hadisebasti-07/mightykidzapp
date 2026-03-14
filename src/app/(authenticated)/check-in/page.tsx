@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CheckInSuccessDialog } from '@/components/check-in/check-in-success-dialog';
 
 export default function CheckInPage() {
-  const allKids = getKids();
+  const [allKids, setAllKids] = useState<Kid[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Kid[]>([]);
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
   const [isSuccessOpen, setSuccessOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchKids = async () => {
+      const kidsData = await getKids();
+      setAllKids(kidsData);
+    };
+    fetchKids();
+  }, []);
 
   const handleSearch = () => {
     if (searchTerm.trim() === '') {

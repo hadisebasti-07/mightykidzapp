@@ -67,8 +67,9 @@ export function KidForm() {
     mode: 'onChange',
   });
 
-  function onSubmit(data: KidFormValues) {
-    addKid(data);
+  async function onSubmit(data: KidFormValues) {
+    console.log('KidForm: Submitting data', data);
+    await addKid(data);
     toast({
       title: 'Kid Profile Created',
       description: `The profile for ${data.firstName} ${data.lastName} has been created.`,

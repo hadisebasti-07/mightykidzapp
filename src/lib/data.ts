@@ -1,115 +1,57 @@
-import { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
+import { db } from './firebase/auth';
+import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { PlaceHolderImages } from './placeholder-images';
 
-// Augment the global scope to add our in-memory cache for development
-declare global {
-  var __in_memory_kids_cache: Kid[];
-}
+// This function now saves a new kid to the 'kids' collection in Firestore.
+export const addKid = async (data: {
+  firstName: string;
+  lastName: string;
+  nickname?: string;
+  dateOfBirth: Date;
+  gender: 'Male' | 'Female';
+  parentName: string;
+  parentPhone: string;
+  allergies?: string;
+  medicalNotes?: string;
+}) => {
+  const birthDate = data.dateOfBirth;
 
-const initialKids: Kid[] = [
-  {
-    id: 'k1',
-    firstName: 'Liam',
-    lastName: 'Smith',
-    nickname: 'Li',
-    dateOfBirth: '2018-05-15',
-    gender: 'Male',
-    parentName: 'Emma Smith',
-    parentPhone: '111-222-3333',
-    photoUrl: PlaceHolderImages.find(p => p.id === 'kid1')?.imageUrl || '',
-    coinsBalance: 150,
-    totalAttendance: 45,
-    birthdayMonth: 5,
-    createdAt: '2022-01-10',
-    allergies: 'Peanuts',
-  },
-  {
-    id: 'k2',
-    firstName: 'Olivia',
-    lastName: 'Jones',
-    dateOfBirth: '2019-09-20',
-    gender: 'Female',
-    parentName: 'Noah Jones',
-    parentPhone: '222-333-4444',
-    photoUrl: PlaceHolderImages.find(p => p.id === 'kid2')?.imageUrl || '',
-    coinsBalance: 200,
-    totalAttendance: 50,
-    birthdayMonth: 9,
-    createdAt: '2022-02-15',
-  },
-  {
-    id: 'k3',
-    firstName: 'Noah',
-    lastName: 'Williams',
-    dateOfBirth: '2017-07-11',
-    gender: 'Male',
-    parentName: 'Ava Williams',
-    parentPhone: '333-444-5555',
-    photoUrl: PlaceHolderImages.find(p => p.id === 'kid3')?.imageUrl || '',
-    coinsBalance: 120,
-    totalAttendance: 38,
-    birthdayMonth: 7,
-    createdAt: '2021-11-20',
-  },
-  {
-    id: 'k4',
-    firstName: 'Emma',
-    lastName: 'Brown',
-    nickname: 'Em',
-    dateOfBirth: '2020-02-25',
-    gender: 'Female',
-    parentName: 'James Brown',
-    parentPhone: '444-555-6666',
-    photoUrl: PlaceHolderImages.find(p => p.id === 'kid4')?.imageUrl || '',
-    coinsBalance: 300,
-    totalAttendance: 60,
-    birthdayMonth: 2,
-    createdAt: '2023-03-01',
-    medicalNotes: 'Asthma',
-  },
-  {
-    id: 'k5',
-    firstName: 'James',
-    lastName: 'Davis',
-    dateOfBirth: '2018-11-30',
-    gender: 'Male',
-    parentName: 'Sophia Davis',
-    parentPhone: '555-666-7777',
-    photoUrl: PlaceHolderImages.find(p => p.id === 'kid5')?.imageUrl || '',
-    coinsBalance: 80,
-    totalAttendance: 30,
-    birthdayMonth: 11,
-    createdAt: '2022-08-12',
-  },
-  {
-    id: 'k6',
-    firstName: 'Sophia',
-    lastName: 'Miller',
-    dateOfBirth: '2019-04-05',
-    gender: 'Female',
-    parentName: 'Benjamin Miller',
-    parentPhone: '666-777-8888',
-    photoUrl: PlaceHolderImages.find(p => p.id === 'kid6')?.imageUrl || '',
-    coinsBalance: 250,
-    totalAttendance: 55,
-    birthdayMonth: 4,
-    createdAt: '2022-09-18',
-  },
-];
+  const newKidData = {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    nickname: data.nickname || '',
+    dateOfBirth: birthDate.toISOString().split('T')[0],
+    gender: data.gender,
+    parentName: data.parentName,
+    parentPhone: data.parentPhone,
+    allergies: data.allergies || '',
+    medicalNotes: data.medicalNotes || '',
+    photoUrl: `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
+    coinsBalance: 0,
+    totalAttendance: 0,
+    birthdayMonth: birthDate.getMonth() + 1,
+    createdAt: new Date().toISOString(), // Use full ISO string for sorting
+  };
 
-// This is a workaround to persist data in memory during development.
-// In a real app, this would be a database.
-let kids: Kid[];
-
-if (process.env.NODE_ENV === 'production') {
-  kids = initialKids;
-} else {
-  if (!globalThis.__in_memory_kids_cache) {
-    globalThis.__in_memory_kids_cache = initialKids;
+  console.log('data.ts (addKid): Writing to Firestore with data:', newKidData);
+  try {
+    const docRef = await addDoc(collection(db, 'kids'), newKidData);
+    console.log('data.ts (addKid): Document written with ID: ', docRef.id);
+  } catch (e) {
+    console.error("data.ts (addKid): Error adding document: ", e);
   }
-  kids = globalThis.__in_memory_kids_cache;
-}
+};
+
+// This function now fetches all kids from the 'kids' collection in Firestore.
+export const getKids = async (): Promise<Kid[]> => {
+  const kidsCol = collection(db, 'kids');
+  const q = query(kidsCol, orderBy('createdAt', 'desc')); // Order by creation date, newest first
+  const kidsSnapshot = await getDocs(q);
+  const kidsList = kidsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kid));
+  return kidsList;
+};
 
 export const gifts: Gift[] = [
   {
@@ -205,45 +147,6 @@ export const volunteers: Volunteer[] = [
     role: 'Volunteer',
   },
 ];
-
-export const addKid = (data: {
-  firstName: string;
-  lastName: string;
-  nickname?: string;
-  dateOfBirth: Date;
-  gender: 'Male' | 'Female';
-  parentName: string;
-  parentPhone: string;
-  allergies?: string;
-  medicalNotes?: string;
-}) => {
-  const newId = `k${Date.now()}`;
-  const birthDate = data.dateOfBirth;
-
-  const newKid: Kid = {
-    id: newId,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    nickname: data.nickname || '',
-    dateOfBirth: birthDate.toISOString().split('T')[0],
-    gender: data.gender,
-    parentName: data.parentName,
-    parentPhone: data.parentPhone,
-    allergies: data.allergies || '',
-    medicalNotes: data.medicalNotes || '',
-    photoUrl: `https://picsum.photos/seed/${newId}/400/400`,
-    coinsBalance: 0,
-    totalAttendance: 0,
-    birthdayMonth: birthDate.getMonth() + 1,
-    createdAt: new Date().toISOString().split('T')[0],
-  };
-
-  kids.unshift(newKid);
-};
-
-export const getKids = (): Kid[] => kids;
-export const getKidById = (id: string): Kid | undefined =>
-  kids.find((k) => k.id === id);
 
 export const getGifts = (): Gift[] => gifts;
 export const getGiftById = (id: string): Gift | undefined =>
