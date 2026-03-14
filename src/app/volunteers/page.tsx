@@ -27,6 +27,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
 
 export default function VolunteersPage() {
   const volunteers = getVolunteers();
@@ -37,9 +38,11 @@ export default function VolunteersPage() {
         title="Volunteer Management"
         description="Add, edit, and view volunteer profiles."
       >
-        <Button>
-          <PlusCircle />
-          Add Volunteer
+        <Button asChild>
+          <Link href="/volunteers/new">
+            <PlusCircle />
+            Add Volunteer
+          </Link>
         </Button>
       </PageHeader>
 
