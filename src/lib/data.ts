@@ -220,7 +220,9 @@ export const addKid = (data: {
     createdAt: new Date().toISOString().split('T')[0],
   };
 
+  console.log('data.ts (addKid): Creating new kid:', newKid);
   kids.unshift(newKid);
+  console.log('data.ts (addKid): Kids array after adding. Total kids:', kids.length);
 };
 
 export const getKids = (): Kid[] => kids;

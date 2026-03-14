@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 export default function KidsPage() {
   const kids = getKids();
+  console.log('KidsPage: Fetched kids on page load. Total kids:', kids.length);
 
   return (
     <div className="flex flex-col gap-8">
