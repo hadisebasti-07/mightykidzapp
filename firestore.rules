@@ -1,11 +1,248 @@
 rules_version = '2';
 
+/**
+ * @name Church Children's Ministry Firestore Rules
+ * @file firestore.rules
+ *
+ * @description
+ * This ruleset is designed for the Church Children's Ministry application.
+ *
+ * @core_philosophy
+ * The security model is strictly 'admin-only'. All read and write operations
+ * across the entire database are restricted to authenticated users who are
+ * designated as administrators. This provides a highly secure environment
+ * for managing sensitive information about children and volunteers.
+ *
+ * @data_structure
+ * Data is organized into several top-level collections:
+ * - `/admins`: A special collection used for Database Access Control (DBAC).
+ * - `/kids`: Contains profiles for each child.
+ * - `/gifts`: A catalog of reward items.
+ * - `/volunteers`: Profiles for ministry volunteers.
+ * - `/volunteerSchedules`: Manages volunteer assignments.
+ * Child-specific data (attendance, transactions, redemptions) is nested in
+ * subcollections under `/kids/{kidId}` to maintain clear ownership and
+ * facilitate targeted queries.
+ *
+ * @key_security_decisions
+ * - Admin-Only Access: The primary security principle is that only users with
+ *   a corresponding document in the `/admins` collection can access any data.
+ * - DBAC via Collection: Administrator status is determined by the existence
+ *   of a document at `/admins/{userId}`. This is a simple, performant, and
+ *   easily auditable method for managing roles without custom claims.
+ * - Client-Side Admin Management Disabled: Rules explicitly prevent any
+ *   client from creating, modifying, or deleting documents in the `/admins`
+ *   collection to prevent users from promoting themselves to admin status.
+ *   Admin roles must be managed directly in the Firebase Console or via a
+ *   trusted server-side process.
+ * - Relational Integrity: While data shapes are flexible for rapid
+ *   prototyping, rules strictly enforce the integrity of relational keys
+ *   (e.g., `kidId` in subcollections) to prevent data from being orphaned or
+ *   mis-associated.
+ *
+ * @denormalization_for_authorization
+ * The database schema is designed with future expansion in mind. Although the
+ * current rules are admin-only, entities like `KidProfile` are intended to
+ * hold a `parentUids` array. This field would be denormalized (copied) into
+ * all child-specific subcollection documents (e.g., `attendances`). This
+ * strategy avoids costly `get()` calls in security rules, enabling future
+ * parent-role rules to securely and efficiently authorize access by checking
+ * for their UID directly within the document being accessed.
+ */
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow authenticated users to read and write to the 'kids' collection.
-    // In a real production app, you would want to refine these rules further.
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks if the requesting user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the user is an administrator.
+     * Admin status is granted by the existence of a document in the /admins
+     * collection with an ID matching the user's UID.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    /**
+     * Verifies that a document exists for state-changing operations.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Ensures the internal 'id' field matches the document ID upon creation.
+     */
+    function isConsistentIdOnCreate(docId) {
+      return request.resource.data.id == docId;
+    }
+
+    /**
+     * Ensures the internal 'id' field is immutable upon update.
+     */
+    function isImmutableId() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Ensures the internal parent 'kidId' field matches the path upon creation.
+     */
+    function isConsistentParentLinkOnCreate(kidId) {
+      return request.resource.data.kidId == kidId;
+    }
+
+    /**
+     * Ensures the internal parent 'kidId' field is immutable upon update.
+     */
+    function isImmutableParentLink() {
+      return request.resource.data.kidId == resource.data.kidId;
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin Role-Based Access Control
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages admin role markers. Writes are disabled from the client
+     * to prevent self-promotion. Admin roles must be managed via the Firebase
+     * Console or a trusted backend. Admins can read the list of other admins.
+     * @path /admins/{adminUid}
+     * @allow (get) An admin with UID 'admin123' reading the doc for 'admin456'.
+     * @deny (create) Any user attempting to create a document for themselves.
+     * @principle Secures the role-management system by disabling all client-side writes.
+     */
+    match /admins/{adminUid} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Core Data Collections
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages the profiles of children in the ministry. Only admins
+     * can create, read, update, or delete kid profiles.
+     * @path /kids/{kidId}
+     * @allow (create) An admin creating a new kid profile.
+     * @deny (get) A non-admin user trying to read a kid's profile.
+     * @principle Restricts all data access to verified administrators.
+     */
     match /kids/{kidId} {
-      allow read, write: if request.auth != null;
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(kidId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+
+      /**
+       * @description Manages attendance records for a specific child. Access is
+       * restricted to admins. Enforces that the record's `kidId` matches the
+       * parent document's path.
+       * @path /kids/{kidId}/attendances/{attendanceId}
+       * @allow (create) An admin creating an attendance record for the child specified in the path.
+       * @deny (create) An admin creating a record where the internal `kidId` does not match the path `kidId`.
+       * @principle Enforces data integrity by linking subcollection documents to their parent path.
+       */
+      match /attendances/{attendanceId} {
+        allow get: if isAdmin();
+        allow list: if isAdmin();
+        allow create: if isAdmin() && isConsistentIdOnCreate(attendanceId) && isConsistentParentLinkOnCreate(kidId);
+        allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
+        allow delete: if isAdmin() && isExistingDoc();
+      }
+
+      /**
+       * @description Manages coin transaction records for a specific child. Access
+       * is restricted to admins. Enforces `kidId` consistency.
+       * @path /kids/{kidId}/coinTransactions/{transactionId}
+       * @allow (list) An admin listing all coin transactions for a specific child.
+       * @deny (update) A non-admin user attempting to modify a transaction.
+       * @principle Enforces data integrity by linking subcollection documents to their parent path.
+       */
+      match /coinTransactions/{transactionId} {
+        allow get: if isAdmin();
+        allow list: if isAdmin();
+        allow create: if isAdmin() && isConsistentIdOnCreate(transactionId) && isConsistentParentLinkOnCreate(kidId);
+        allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
+        allow delete: if isAdmin() && isExistingDoc();
+      }
+
+      /**
+       * @description Manages gift redemption records for a specific child. Access is
+       * restricted to admins. Enforces `kidId` consistency.
+       * @path /kids/{kidId}/redemptions/{redemptionId}
+       * @allow (delete) An admin deleting a redemption record for a specific child.
+       * @deny (get) A non-admin user trying to read a redemption record.
+       * @principle Enforces data integrity by linking subcollection documents to their parent path.
+       */
+      match /redemptions/{redemptionId} {
+        allow get: if isAdmin();
+        allow list: if isAdmin();
+        allow create: if isAdmin() && isConsistentIdOnCreate(redemptionId) && isConsistentParentLinkOnCreate(kidId);
+        allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
+        allow delete: if isAdmin() && isExistingDoc();
+      }
+    }
+
+    /**
+     * @description Manages the catalog of gifts available in the reward store.
+     * Only admins can manage the gift catalog.
+     * @path /gifts/{giftId}
+     * @allow (update) An admin updating the stock or price of a gift.
+     * @deny (create) A non-admin user attempting to add a new gift.
+     * @principle Restricts all data access to verified administrators.
+     */
+    match /gifts/{giftId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(giftId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages the profiles of ministry volunteers. Only admins can
+     * create, read, update, or delete volunteer profiles.
+     * @path /volunteers/{volunteerId}
+     * @allow (list) An admin listing all available volunteers.
+     * @deny (get) A non-admin user trying to read a volunteer's profile.
+     * @principle Restricts all data access to verified administrators.
+     */
+    match /volunteers/{volunteerId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(volunteerId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages the schedules for volunteers. Only admins can
+     * create, read, update, or delete schedules.
+     * @path /volunteerSchedules/{scheduleId}
+     * @allow (create) An admin creating a new schedule for an upcoming service.
+     * @deny (update) A non-admin user attempting to modify a volunteer schedule.
+     * @principle Restricts all data access to verified administrators.
+     */
+    match /volunteerSchedules/{scheduleId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(scheduleId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
     }
   }
 }
