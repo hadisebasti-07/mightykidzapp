@@ -47,7 +47,14 @@ const kidFormSchema = z.object({
 type KidFormValues = z.infer<typeof kidFormSchema>;
 
 const defaultValues: Partial<KidFormValues> = {
+  firstName: '',
+  lastName: '',
+  nickname: '',
   gender: 'Male',
+  parentName: '',
+  parentPhone: '',
+  allergies: '',
+  medicalNotes: '',
 };
 
 export function KidForm() {
@@ -212,7 +219,7 @@ export function KidForm() {
             <FormItem>
                 <FormLabel>Allergies (Optional)</FormLabel>
                 <FormControl>
-                <Textarea placeholder="Peanuts, gluten, etc." {...field} value={field.value ?? ''}/>
+                <Textarea placeholder="Peanuts, gluten, etc." {...field} />
                 </FormControl>
                 <FormDescription>
                     List any known allergies.
@@ -228,7 +235,7 @@ export function KidForm() {
             <FormItem>
                 <FormLabel>Medical Notes (Optional)</FormLabel>
                 <FormControl>
-                <Textarea placeholder="Asthma, etc." {...field} value={field.value ?? ''}/>
+                <Textarea placeholder="Asthma, etc." {...field} />
                 </FormControl>
                  <FormDescription>
                     List any important medical information.
