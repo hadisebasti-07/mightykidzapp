@@ -1,8 +1,13 @@
 import { db } from './firebase/firebase';
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { PlaceHolderImages } from './placeholder-images';
+
+// This is a temporary in-memory cache for development.
+// In a real app, you wouldn't need this, as Firestore would be the source of truth.
+let kidsCache: Kid[] | null = null;
+
 
 // This function now saves a new kid to the 'kids' collection in Firestore.
 export const addKid = async (data: {
@@ -18,7 +23,12 @@ export const addKid = async (data: {
 }) => {
   const birthDate = data.dateOfBirth;
 
+  // 1. Create a new doc ref with an auto-generated ID
+  const newKidRef = doc(collection(db, 'kids'));
+
+  // 2. Create the data object, including the new ID to satisfy security rules
   const newKidData = {
+    id: newKidRef.id, // This is required by your firestore.rules
     firstName: data.firstName,
     lastName: data.lastName,
     nickname: data.nickname || '',
@@ -32,25 +42,41 @@ export const addKid = async (data: {
     coinsBalance: 0,
     totalAttendance: 0,
     birthdayMonth: birthDate.getMonth() + 1,
-    createdAt: new Date().toISOString(), // Use full ISO string for sorting
+    createdAt: new Date().toISOString(),
   };
 
-  console.log('KidForm: Submitting data', data);
+  console.log(`data.ts (addKid): Attempting to create new kid with ID: ${newKidRef.id}`, newKidData);
   try {
-    const docRef = await addDoc(collection(db, 'kids'), newKidData);
-    console.log('data.ts (addKid): Document written with ID: ', docRef.id);
+    // 3. Use setDoc to save the document. This requires admin permissions from your rules.
+    await setDoc(newKidRef, newKidData);
+    console.log('data.ts (addKid): Document written successfully!');
+    kidsCache = null; // Invalidate cache after adding
   } catch (e) {
     console.error("data.ts (addKid): Error adding document: ", e);
+    // Re-throw the error so the form can catch it if needed
+    throw e;
   }
 };
 
 // This function now fetches all kids from the 'kids' collection in Firestore.
 export const getKids = async (): Promise<Kid[]> => {
+  // Use cache in development to see newly added kids, since server reloads reset module-level variables
+  if (process.env.NODE_ENV === 'development' && kidsCache) {
+    console.log('KidsPage: Using cached kids data.');
+    return kidsCache;
+  }
+
   const kidsCol = collection(db, 'kids');
-  const q = query(kidsCol, orderBy('createdAt', 'desc')); // Order by creation date, newest first
+  const q = query(kidsCol, orderBy('createdAt', 'desc'));
   const kidsSnapshot = await getDocs(q);
   const kidsList = kidsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kid));
-  console.log(`KidsPage: Fetched kids on page load. Total kids: ${kidsList.length}`);
+  
+  console.log(`Server: Fetched kids on page load. Total kids: ${kidsList.length}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    kidsCache = kidsList;
+  }
+
   return kidsList;
 };
 
