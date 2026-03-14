@@ -21,12 +21,11 @@ export function CheckInSuccessDialog({ kid, open, onOpenChange }: Props) {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const isBirthday = new Date().getMonth() + 1 === kid.birthdayMonth && new Date().getDate() === new Date(kid.dateOfBirth).getDate();
-
   useEffect(() => {
     if (open) {
       const getMessage = async () => {
         setIsLoading(true);
+        const isBirthday = new Date().getMonth() + 1 === kid.birthdayMonth && new Date().getDate() === new Date(kid.dateOfBirth).getDate();
         try {
           const result = await generatePersonalizedCheckinMessage({
             kidName: kid.firstName,
@@ -47,7 +46,7 @@ export function CheckInSuccessDialog({ kid, open, onOpenChange }: Props) {
 
       return () => clearTimeout(timer);
     }
-  }, [open, onOpenChange, kid, isBirthday]);
+  }, [open, onOpenChange, kid]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

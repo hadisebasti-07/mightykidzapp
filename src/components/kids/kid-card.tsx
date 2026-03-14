@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { Kid } from '@/lib/types';
 import {
@@ -8,14 +10,27 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Cake } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 type KidCardProps = {
   kid: Kid;
 };
 
 export function KidCard({ kid }: KidCardProps) {
-  const isBirthdayMonth = new Date().getMonth() + 1 === kid.birthdayMonth;
-  const age = new Date().getFullYear() - new Date(kid.dateOfBirth).getFullYear();
+  const [isBirthdayMonth, setIsBirthdayMonth] = useState(false);
+  const [age, setAge] = useState<number | null>(null);
+
+  useEffect(() => {
+    const today = new Date();
+    const birthDate = new Date(kid.dateOfBirth);
+    let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      calculatedAge--;
+    }
+    setAge(calculatedAge);
+    setIsBirthdayMonth(today.getMonth() + 1 === kid.birthdayMonth);
+  }, [kid.dateOfBirth, kid.birthdayMonth]);
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
@@ -40,7 +55,9 @@ export function KidCard({ kid }: KidCardProps) {
         <h3 className="text-xl font-bold font-headline truncate">
           {kid.firstName} {kid.lastName}
         </h3>
-        <p className="text-sm text-muted-foreground">{age} years old</p>
+        {age !== null && (
+          <p className="text-sm text-muted-foreground">{age} years old</p>
+        )}
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
         <div className="flex items-center gap-1">
