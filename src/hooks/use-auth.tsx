@@ -5,6 +5,10 @@ import { onAuthStateChanged, User } from '@/lib/firebase/auth';
 import { auth } from '@/lib/firebase/auth';
 import { Loader2 } from 'lucide-react';
 
+// The email address for the administrator.
+// Make sure this user exists in your Firebase Authentication users.
+const ADMIN_EMAIL = 'admin@example.com';
+
 type AuthContextType = {
   user: User | null;
   isAdmin: boolean;
@@ -25,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (user && user.email === 'admin@example.com') {
+      if (user && user.email === ADMIN_EMAIL) {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
