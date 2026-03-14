@@ -2,7 +2,12 @@ import { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { PlaceHolderImages } from './placeholder-images';
 
-export const kids: Kid[] = [
+// Augment the global scope to add our in-memory cache for development
+declare global {
+  var __in_memory_kids_cache: Kid[];
+}
+
+const initialKids: Kid[] = [
   {
     id: 'k1',
     firstName: 'Liam',
@@ -92,6 +97,19 @@ export const kids: Kid[] = [
     createdAt: '2022-09-18',
   },
 ];
+
+// This is a workaround to persist data in memory during development.
+// In a real app, this would be a database.
+let kids: Kid[];
+
+if (process.env.NODE_ENV === 'production') {
+  kids = initialKids;
+} else {
+  if (!globalThis.__in_memory_kids_cache) {
+    globalThis.__in_memory_kids_cache = initialKids;
+  }
+  kids = globalThis.__in_memory_kids_cache;
+}
 
 export const gifts: Gift[] = [
   {
@@ -220,9 +238,7 @@ export const addKid = (data: {
     createdAt: new Date().toISOString().split('T')[0],
   };
 
-  console.log('data.ts (addKid): Creating new kid:', newKid);
   kids.unshift(newKid);
-  console.log('data.ts (addKid): Kids array after adding. Total kids:', kids.length);
 };
 
 export const getKids = (): Kid[] => kids;

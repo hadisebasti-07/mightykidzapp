@@ -68,7 +68,6 @@ export function KidForm() {
   });
 
   function onSubmit(data: KidFormValues) {
-    console.log('KidForm: Submitting data', data);
     addKid(data);
     toast({
       title: 'Kid Profile Created',
