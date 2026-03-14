@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +24,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
 import { useEffect, useState } from 'react';
+import { signOut } from '@/lib/firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -35,11 +38,33 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'There was a problem logging you out.',
+      });
+    }
+  };
+
 
   return (
     <Sidebar>
@@ -92,15 +117,18 @@ export function AppSidebar() {
           </Avatar>
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
-              Jessica Day
+              {user?.displayName || 'Admin User'}
             </p>
-            <p className="truncate text-xs text-muted-foreground">Admin</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {user?.email}
+            </p>
           </div>
           <SidebarMenuButton
             size="icon"
             variant="ghost"
             className="ml-auto size-8 shrink-0"
             tooltip="Log Out"
+            onClick={handleLogout}
           >
             <LogOut className="size-4" />
           </SidebarMenuButton>

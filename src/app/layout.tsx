@@ -2,10 +2,8 @@ import type { Metadata } from 'next';
 import { Poppins } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/layout/app-sidebar';
-import { Header } from '@/components/layout/header';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/hooks/use-auth';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -26,14 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn('font-body antialiased', poppins.variable)}>
-        <SidebarProvider>
-          <AppSidebar />
-          <div className="flex h-full min-h-svh flex-1 flex-col">
-            <Header />
-            <SidebarInset>{children}</SidebarInset>
-          </div>
-        </SidebarProvider>
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
