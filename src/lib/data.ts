@@ -1,4 +1,4 @@
-import { db } from './firebase/auth';
+import { db } from './firebase/firebase';
 import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
@@ -35,7 +35,7 @@ export const addKid = async (data: {
     createdAt: new Date().toISOString(), // Use full ISO string for sorting
   };
 
-  console.log('data.ts (addKid): Writing to Firestore with data:', newKidData);
+  console.log('KidForm: Submitting data', data);
   try {
     const docRef = await addDoc(collection(db, 'kids'), newKidData);
     console.log('data.ts (addKid): Document written with ID: ', docRef.id);
@@ -50,6 +50,7 @@ export const getKids = async (): Promise<Kid[]> => {
   const q = query(kidsCol, orderBy('createdAt', 'desc')); // Order by creation date, newest first
   const kidsSnapshot = await getDocs(q);
   const kidsList = kidsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kid));
+  console.log(`KidsPage: Fetched kids on page load. Total kids: ${kidsList.length}`);
   return kidsList;
 };
 
