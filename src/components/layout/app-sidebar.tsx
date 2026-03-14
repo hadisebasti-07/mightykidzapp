@@ -44,19 +44,20 @@ export function AppSidebar() {
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href}>
-                <SidebarMenuButton
-                  isActive={
-                    item.href === '/'
-                      ? pathname === item.href
-                      : pathname.startsWith(item.href)
-                  }
-                  tooltip={item.label}
-                >
+              <SidebarMenuButton
+                asChild
+                isActive={
+                  item.href === '/'
+                    ? pathname === item.href
+                    : pathname.startsWith(item.href)
+                }
+                tooltip={item.label}
+              >
+                <Link href={item.href}>
                   <item.icon />
                   <span>{item.label}</span>
-                </SidebarMenuButton>
-              </Link>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
