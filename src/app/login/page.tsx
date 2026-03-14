@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from '@/lib/firebase/auth';
+import { auth, signInWithEmailAndPassword } from '@/lib/firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -29,7 +29,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Login Successful',
         description: "Welcome back!",
