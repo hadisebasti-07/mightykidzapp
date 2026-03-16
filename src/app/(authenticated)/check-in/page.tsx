@@ -11,11 +11,12 @@ import {
   QrCode,
   UserPlus,
   CameraOff,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { getKids, getRecentActivities } from '@/lib/data';
 import { Kid } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CheckInSuccessDialog } from '@/components/check-in/check-in-success-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -26,6 +27,8 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Confetti } from '@/components/confetti';
+import { generatePersonalizedCheckinMessage } from '@/ai/flows/generate-personalized-checkin-message';
 
 export default function CheckInPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -34,10 +37,14 @@ export default function CheckInPage() {
   const [quickCheckInKids, setQuickCheckInKids] = useState<Kid[]>([]);
 
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
-  const [isSuccessOpen, setSuccessOpen] = useState(false);
+  const [isScannerOpen, setScannerOpen] = useState(false);
+
+  // State for the success overlay
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoadingMessage, setIsLoadingMessage] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isScannerOpen, setScannerOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(
     null
   );
@@ -108,6 +115,34 @@ export default function CheckInPage() {
     }
   }, [isScannerOpen, toast]);
 
+  // Effect to handle the success overlay
+  useEffect(() => {
+    if (showSuccess && selectedKid) {
+      const getMessage = async () => {
+        setIsLoadingMessage(true);
+        try {
+          const isBirthday = new Date().getMonth() + 1 === selectedKid.birthdayMonth && new Date().getDate() === new Date(selectedKid.dateOfBirth).getDate();
+          const result = await generatePersonalizedCheckinMessage({
+            kidName: selectedKid.firstName,
+            isBirthday: isBirthday,
+          });
+          setSuccessMessage(result);
+        } catch (error) {
+          console.error('Error generating message:', error);
+          setSuccessMessage(`Welcome, ${selectedKid.firstName}! We're so glad you're here!`);
+        }
+        setIsLoadingMessage(false);
+      };
+      getMessage();
+
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 8000); // Auto-close after 8 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess, selectedKid]);
+
   const handleSearch = () => {
     if (searchTerm.trim() === '') {
       setSearchResults([]);
@@ -124,23 +159,18 @@ export default function CheckInPage() {
 
   const handleCheckIn = (kid: Kid) => {
     setSelectedKid(kid);
-    // If we're checking in from the scanner, close it first and then open
-    // the success dialog after a short delay to prevent them from overlapping.
     if (isScannerOpen) {
       setScannerOpen(false);
+      // Use a timeout to allow the scanner dialog to close before showing the success overlay
       setTimeout(() => {
-        setSuccessOpen(true);
+        setShowSuccess(true);
       }, 300);
     } else {
-      // Otherwise, open the success dialog immediately.
-      setSuccessOpen(true);
+      setShowSuccess(true);
     }
   };
 
-  // Simulate scanning a barcode
   const handleSimulateScan = () => {
-    // In a real app, a barcode scanning library would provide the kid ID.
-    // Here we'll just pick a random kid to check in.
     if (allKids.length > 0) {
       const randomKid = allKids[Math.floor(Math.random() * allKids.length)];
       handleCheckIn(randomKid);
@@ -167,7 +197,6 @@ export default function CheckInPage() {
           </Button>
         </PageHeader>
 
-        {/* Search and Scan */}
         <div className="mx-auto w-full max-w-3xl">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -234,9 +263,8 @@ export default function CheckInPage() {
           </div>
         </div>
 
-        {/* Search Results */}
-        <div className="mx-auto w-full max-w-3xl space-y-4">
-          {searchResults.length > 0 && (
+        {searchResults.length > 0 && (
+          <div className="mx-auto w-full max-w-3xl space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Search Results</h2>
               <Button
@@ -250,40 +278,39 @@ export default function CheckInPage() {
                 <X className="mr-2 h-4 w-4" /> Clear Search
               </Button>
             </div>
-          )}
-          {searchResults.map((kid) => (
-            <div
-              key={kid.id}
-              className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm"
-            >
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={kid.photoUrl} alt={kid.firstName} />
-                <AvatarFallback>
-                  {kid.firstName.charAt(0)}
-                  {kid.lastName.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="text-xl font-bold">
-                  {kid.firstName} {kid.lastName}
-                </p>
-                <p className="text-muted-foreground">
-                  Parent: {kid.parentName}
-                </p>
-              </div>
-              <Button
-                size="lg"
-                className="h-14 px-8 text-lg"
-                onClick={() => handleCheckIn(kid)}
+            {searchResults.map((kid) => (
+              <div
+                key={kid.id}
+                className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm"
               >
-                <UserCheck className="mr-2 h-5 w-5" />
-                Check In
-              </Button>
-            </div>
-          ))}
-        </div>
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={kid.photoUrl} alt={kid.firstName} />
+                  <AvatarFallback>
+                    {kid.firstName.charAt(0)}
+                    {kid.lastName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="text-xl font-bold">
+                    {kid.firstName} {kid.lastName}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Parent: {kid.parentName}
+                  </p>
+                </div>
+                <Button
+                  size="lg"
+                  className="h-14 px-8 text-lg"
+                  onClick={() => handleCheckIn(kid)}
+                >
+                  <UserCheck className="mr-2 h-5 w-5" />
+                  Check In
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Quick Check-In */}
         {searchResults.length === 0 && (
           <div className="mx-auto w-full max-w-3xl">
             <Card>
@@ -332,12 +359,33 @@ export default function CheckInPage() {
           </div>
         )}
       </div>
-      {selectedKid && (
-        <CheckInSuccessDialog
-          kid={selectedKid}
-          open={isSuccessOpen}
-          onOpenChange={setSuccessOpen}
-        />
+
+      {showSuccess && selectedKid && (
+        <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-background/50 backdrop-blur-sm">
+          <Confetti />
+          <div className="relative flex flex-col items-center rounded-3xl bg-background/80 p-12 text-center backdrop-blur-lg">
+            <Avatar className="h-40 w-40 border-8 border-background shadow-lg">
+              <AvatarImage src={selectedKid.photoUrl} alt={selectedKid.firstName} />
+              <AvatarFallback className="text-6xl">
+                {selectedKid.firstName.charAt(0)}
+                {selectedKid.lastName.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="mt-6">
+              {isLoadingMessage ? (
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              ) : (
+                <h2 className="font-headline text-4xl font-bold leading-tight tracking-tighter md:text-5xl">
+                  {successMessage}
+                </h2>
+              )}
+            </div>
+            <div className="mt-4 flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-primary-foreground">
+              <Sparkles className="size-5 text-primary" />
+              <span>+10 Coins Earned!</span>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
