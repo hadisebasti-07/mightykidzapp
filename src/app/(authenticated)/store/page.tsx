@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getGifts, getKids } from '@/lib/data';
+import { getGifts, getKids, redeemGift } from '@/lib/data';
 import { GiftCard } from '@/components/store/gift-card';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import Link from 'next/link';
+import { generateGiftRedemptionMessage } from '@/ai/flows/generate-gift-redemption-message';
+import { useToast } from '@/hooks/use-toast';
 
 export default function StorePage() {
   const [gifts, setGifts] = useState<Gift[]>([]);
@@ -23,18 +25,10 @@ export default function StorePage() {
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   const [isRedeemOpen, setRedeemOpen] = useState(false);
-
-  const fetchAndSetData = async () => {
-    const kidsData = await getKids();
-    setKids(kidsData);
-    const giftsData = await getGifts();
-    setGifts(giftsData);
-    
-    if (selectedKid) {
-        const updatedSelectedKid = kidsData.find(k => k.id === selectedKid.id);
-        setSelectedKid(updatedSelectedKid || null);
-    }
-  };
+  
+  const [redemptionState, setRedemptionState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [successMessage, setSuccessMessage] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -46,15 +40,60 @@ export default function StorePage() {
     fetchInitialData();
   }, []);
 
-  const handleRedeem = (gift: Gift) => {
+  const handleRedeemClick = (gift: Gift) => {
     if (selectedKid) {
       setSelectedGift(gift);
       setRedeemOpen(true);
+      setRedemptionState('idle'); // Reset state when opening
     } else {
-      // In a real app, you'd show a toast or message to select a kid first.
-      alert('Please select a child first!');
+      toast({
+        variant: 'destructive',
+        title: 'Select a Child',
+        description: 'Please select a child before redeeming a gift.',
+      });
     }
   };
+  
+  const handleRedemptionProcess = async () => {
+    if (!selectedKid || !selectedGift) return;
+
+    setRedemptionState('loading');
+    setSuccessMessage('');
+
+    try {
+      // 1. Perform DB transaction
+      await redeemGift(selectedKid.id, selectedGift.id);
+
+      // 2. After successful DB transaction, generate fun message
+      const result = await generateGiftRedemptionMessage({
+        kidName: selectedKid.firstName,
+        giftName: selectedGift.name,
+      });
+      setSuccessMessage(result.message);
+      setRedemptionState('success');
+
+      // 3. Refresh data in the background
+      const kidsData = await getKids();
+      setKids(kidsData);
+      const giftsData = await getGifts();
+      setGifts(giftsData);
+      
+      // Update selectedKid with new balance
+      const updatedSelectedKid = kidsData.find(k => k.id === selectedKid.id);
+      setSelectedKid(updatedSelectedKid || null);
+
+    } catch (error: any) {
+      console.error('Error during redemption:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Redemption Failed',
+        description: error.message || 'There was an issue processing the redemption.',
+      });
+      setRedemptionState('error');
+      setRedeemOpen(false); // Close dialog on error
+    }
+  };
+
 
   return (
     <>
@@ -100,19 +139,20 @@ export default function StorePage() {
               <GiftCard
                 key={gift.id}
                 gift={gift}
-                onRedeem={() => handleRedeem(gift)}
+                onRedeem={() => handleRedeemClick(gift)}
                 canRedeem={!!selectedKid && selectedKid.coinsBalance >= gift.coinCost && gift.stock > 0}
               />
             ))}
         </div>
       </div>
-      {selectedKid && selectedGift && (
+      {selectedGift && (
          <RedeemSuccessDialog
-            kid={selectedKid}
             gift={selectedGift}
             open={isRedeemOpen}
             onOpenChange={setRedeemOpen}
-            onRedemptionComplete={fetchAndSetData}
+            redemptionState={redemptionState}
+            successMessage={successMessage}
+            onDialogOpen={handleRedemptionProcess}
         />
       )}
     </>
