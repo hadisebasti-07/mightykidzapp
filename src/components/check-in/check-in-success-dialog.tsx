@@ -42,7 +42,7 @@ export function CheckInSuccessDialog({ kid, open, onOpenChange }: Props) {
 
       const timer = setTimeout(() => {
         onOpenChange(false);
-      }, 5000); // Auto-close after 5 seconds
+      }, 8000); // Auto-close after 8 seconds
 
       return () => clearTimeout(timer);
     }

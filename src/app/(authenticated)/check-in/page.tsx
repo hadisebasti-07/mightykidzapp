@@ -124,10 +124,16 @@ export default function CheckInPage() {
 
   const handleCheckIn = (kid: Kid) => {
     setSelectedKid(kid);
-    setSuccessOpen(true);
-    // If scanner is open, close it
+    // If we're checking in from the scanner, close it first and then open
+    // the success dialog after a short delay to prevent them from overlapping.
     if (isScannerOpen) {
       setScannerOpen(false);
+      setTimeout(() => {
+        setSuccessOpen(true);
+      }, 300);
+    } else {
+      // Otherwise, open the success dialog immediately.
+      setSuccessOpen(true);
     }
   };
 
