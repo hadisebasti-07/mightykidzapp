@@ -36,7 +36,7 @@ export default function HomePage() {
   const [searchResults, setSearchResults] = useState<Kid[]>([]);
   const [quickCheckInKids, setQuickCheckInKids] = useState<Kid[]>([]);
 
-  const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
+  const [kidForSuccessOverlay, setKidForSuccessOverlay] = useState<Kid | null>(null);
   const [isScannerOpen, setScannerOpen] = useState(false);
 
   // State for the success overlay
@@ -115,37 +115,46 @@ export default function HomePage() {
     }
   }, [isScannerOpen, toast]);
 
-  // Effect to handle the success overlay
+  // Effect to handle the success overlay AI message generation
   useEffect(() => {
-    if (showSuccess && selectedKid) {
+    let timer: NodeJS.Timeout;
+    if (showSuccess && kidForSuccessOverlay) {
       const getMessage = async () => {
         setIsLoadingMessage(true);
         try {
           const isBirthday =
-            new Date().getMonth() + 1 === selectedKid.birthdayMonth &&
-            new Date().getDate() === new Date(selectedKid.dateOfBirth).getDate();
+            new Date().getMonth() + 1 === kidForSuccessOverlay.birthdayMonth &&
+            new Date().getDate() === new Date(kidForSuccessOverlay.dateOfBirth).getDate();
           const result = await generatePersonalizedCheckinMessage({
-            kidName: selectedKid.firstName,
+            kidName: kidForSuccessOverlay.firstName,
             isBirthday: isBirthday,
           });
           setSuccessMessage(result);
         } catch (error) {
           console.error('Error generating message:', error);
+          // Fallback message
           setSuccessMessage(
-            `Welcome, ${selectedKid.firstName}! We're so glad you're here!`
+            `Welcome, ${kidForSuccessOverlay.firstName}! We're so glad you're here!`
           );
         }
         setIsLoadingMessage(false);
       };
+      
       getMessage();
 
-      const timer = setTimeout(() => {
+      // Set a timer to automatically close the overlay
+      timer = setTimeout(() => {
         setShowSuccess(false);
-      }, 8000); // Auto-close after 8 seconds
-
-      return () => clearTimeout(timer);
+        setKidForSuccessOverlay(null);
+      }, 8000);
     }
-  }, [showSuccess, selectedKid]);
+    
+    // Cleanup function to clear the timeout if the component unmounts
+    // or if the effect re-runs before the timer finishes.
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showSuccess]); // This effect now ONLY runs when `showSuccess` changes.
 
   const handleSearch = () => {
     if (searchTerm.trim() === '') {
@@ -162,37 +171,42 @@ export default function HomePage() {
   };
 
   const handleCheckIn = async (kid: Kid) => {
-    const originalKid = kid;
-    const updatedKid = { ...kid, coinsBalance: kid.coinsBalance + 10, totalAttendance: kid.totalAttendance + 1 };
+    // Show success overlay optimistically with the kid's info and updated coin balance
+    setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
     
-    // Optimistically update the UI
-    setSelectedKid(updatedKid);
-    setAllKids(allKids.map(k => k.id === kid.id ? updatedKid : k));
-    setSearchResults(searchResults.map(k => k.id === kid.id ? updatedKid : k));
-    setQuickCheckInKids(quickCheckInKids.map(k => k.id === kid.id ? updatedKid : k));
-
     if (isScannerOpen) {
       setScannerOpen(false);
+      // Brief timeout to allow scanner dialog to close
       setTimeout(() => setShowSuccess(true), 300);
     } else {
       setShowSuccess(true);
     }
 
     try {
-        await checkInKid(kid.id);
-    } catch(e) {
-        console.error("Check-in failed:", e);
-        toast({
-            variant: "destructive",
-            title: "Check-in Failed",
-            description: "Could not sync with database. Please try again.",
-        });
-        
-        // Revert local state if DB update fails
-        setSelectedKid(originalKid);
-        setAllKids(allKids.map(k => k.id === originalKid.id ? originalKid : k));
-        setSearchResults(searchResults.map(k => k.id === originalKid.id ? originalKid : k));
-        setQuickCheckInKids(quickCheckInKids.map(k => k.id === originalKid.id ? originalKid : k));
+      // Perform the database update in the background
+      await checkInKid(kid.id);
+
+      // On success, refresh all kid data to ensure UI is consistent
+      const refreshedKids = await getKids();
+      setAllKids(refreshedKids);
+
+      // Update the lists that are currently displayed
+      if (searchResults.length > 0) {
+          setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
+      } else {
+          setQuickCheckInKids(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
+      }
+    } catch (e) {
+      console.error("Check-in failed:", e);
+      toast({
+        variant: "destructive",
+        title: "Check-in Failed",
+        description: "Could not sync with database. Please try again.",
+      });
+      
+      // On failure, immediately hide the success overlay
+      setShowSuccess(false);
+      setKidForSuccessOverlay(null);
     }
   };
 
@@ -396,18 +410,18 @@ export default function HomePage() {
         )}
       </div>
 
-      {showSuccess && selectedKid && (
+      {showSuccess && kidForSuccessOverlay && (
         <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
           <Confetti />
           <div className="relative flex flex-col items-center rounded-3xl bg-card/80 p-8 text-center backdrop-blur-lg md:p-12">
             <Avatar className="h-32 w-32 border-8 border-background shadow-lg md:h-40 md:w-40">
               <AvatarImage
-                src={selectedKid.photoUrl}
-                alt={selectedKid.firstName}
+                src={kidForSuccessOverlay.photoUrl}
+                alt={kidForSuccessOverlay.firstName}
               />
               <AvatarFallback className="text-6xl">
-                {selectedKid.firstName.charAt(0)}
-                {selectedKid.lastName.charAt(0)}
+                {kidForSuccessOverlay.firstName.charAt(0)}
+                {kidForSuccessOverlay.lastName.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div className="mt-6">
@@ -422,7 +436,7 @@ export default function HomePage() {
             <div className="mt-4 flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-primary">
               <Coins className="size-5 text-primary" />
               <span className="text-primary-foreground/90">
-                {selectedKid.coinsBalance} Coins Total
+                {kidForSuccessOverlay.coinsBalance} Coins Total
               </span>
             </div>
           </div>
