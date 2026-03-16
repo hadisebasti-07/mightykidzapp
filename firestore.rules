@@ -1,11 +1,11 @@
 rules_version = '2';
 
 /**
- * @name Church Children's Ministry Firestore Rules
+ * @name MightyKidz Firestore Rules
  * @file firestore.rules
  *
  * @description
- * This ruleset is designed for the Church Children's Ministry application.
+ * This ruleset is designed for the MightyKidz application.
  *
  * @core_philosophy
  * The security model is strictly 'admin-only'. All read and write operations

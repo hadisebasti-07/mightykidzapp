@@ -12,7 +12,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'WonderKids Connect',
+  title: 'MightyKidz',
   description: 'Church Children’s Ministry Management',
 };
 

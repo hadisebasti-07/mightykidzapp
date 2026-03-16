@@ -128,8 +128,8 @@ export const gifts: Gift[] = [
   },
   {
     id: 'g6',
-    name: 'WonderKids T-Shirt',
-    description: 'A cool t-shirt with the WonderKids logo!',
+    name: 'MightyKidz T-Shirt',
+    description: 'A cool t-shirt with the MightyKidz logo!',
     coinCost: 500,
     imageUrl: PlaceHolderImages.find(p => p.id === 'gift6')?.imageUrl || '',
     stock: 15,
