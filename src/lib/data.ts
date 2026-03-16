@@ -1,5 +1,7 @@
+'use client';
+
 import { db } from './firebase/firebase';
-import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc, serverTimestamp, increment } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { z } from 'zod';
@@ -139,6 +141,22 @@ export const deleteKid = async (kidId: string) => {
     throw e;
   }
 };
+
+export const checkInKid = async (kidId: string) => {
+  const kidRef = doc(db, 'kids', kidId);
+  try {
+    // Atomically increment the coins balance and attendance count.
+    await updateDoc(kidRef, {
+      coinsBalance: increment(10),
+      totalAttendance: increment(1)
+    });
+    kidsCache = null; // Invalidate cache
+  } catch (e) {
+    console.error(`data.ts (checkInKid): Error updating document with ID ${kidId}: `, e);
+    throw e;
+  }
+};
+
 
 // GIFT MANAGEMENT
 export const getGifts = async (): Promise<Gift[]> => {

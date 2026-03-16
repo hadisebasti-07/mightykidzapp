@@ -12,9 +12,9 @@ import {
   UserPlus,
   CameraOff,
   Loader2,
-  Sparkles,
+  Coins,
 } from 'lucide-react';
-import { getKids, getRecentActivities } from '@/lib/data';
+import { getKids, getRecentActivities, checkInKid } from '@/lib/data';
 import { Kid } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -157,16 +157,38 @@ export default function CheckInPage() {
     setSearchResults(results);
   };
 
-  const handleCheckIn = (kid: Kid) => {
-    setSelectedKid(kid);
+  const handleCheckIn = async (kid: Kid) => {
+    const originalKid = kid;
+    const updatedKid = { ...kid, coinsBalance: kid.coinsBalance + 10, totalAttendance: kid.totalAttendance + 1 };
+    
+    // Optimistically update the UI
+    setSelectedKid(updatedKid);
+    setAllKids(allKids.map(k => k.id === kid.id ? updatedKid : k));
+    setSearchResults(searchResults.map(k => k.id === kid.id ? updatedKid : k));
+    setQuickCheckInKids(quickCheckInKids.map(k => k.id === kid.id ? updatedKid : k));
+
     if (isScannerOpen) {
       setScannerOpen(false);
-      // Use a timeout to allow the scanner dialog to close before showing the success overlay
-      setTimeout(() => {
-        setShowSuccess(true);
-      }, 300);
+      setTimeout(() => setShowSuccess(true), 300);
     } else {
       setShowSuccess(true);
+    }
+
+    try {
+        await checkInKid(kid.id);
+    } catch(e) {
+        console.error("Check-in failed:", e);
+        toast({
+            variant: "destructive",
+            title: "Check-in Failed",
+            description: "Could not sync with database. Please try again.",
+        });
+        
+        // Revert local state if DB update fails
+        setSelectedKid(originalKid);
+        setAllKids(allKids.map(k => k.id === originalKid.id ? originalKid : k));
+        setSearchResults(searchResults.map(k => k.id === originalKid.id ? originalKid : k));
+        setQuickCheckInKids(quickCheckInKids.map(k => k.id === originalKid.id ? originalKid : k));
     }
   };
 
@@ -380,9 +402,9 @@ export default function CheckInPage() {
                 </h2>
               )}
             </div>
-            <div className="mt-4 flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-primary-foreground">
-              <Sparkles className="size-5 text-primary" />
-              <span>+10 Coins Earned!</span>
+            <div className="mt-4 flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-primary">
+              <Coins className="size-5 text-primary" />
+              <span className="text-primary-foreground/90">{selectedKid.coinsBalance} Coins Total</span>
             </div>
           </div>
         </div>

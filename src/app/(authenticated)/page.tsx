@@ -14,7 +14,7 @@ import {
   Loader2,
   Coins,
 } from 'lucide-react';
-import { getKids, getRecentActivities } from '@/lib/data';
+import { getKids, getRecentActivities, checkInKid } from '@/lib/data';
 import { Kid } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -161,27 +161,38 @@ export default function HomePage() {
     setSearchResults(results);
   };
 
-  const handleCheckIn = (kid: Kid) => {
-    // In a real app, this would be an update to the database.
-    // For the prototype, we'll simulate the update in the local state.
-    const updatedKid = { ...kid, coinsBalance: kid.coinsBalance + 10 };
+  const handleCheckIn = async (kid: Kid) => {
+    const originalKid = kid;
+    const updatedKid = { ...kid, coinsBalance: kid.coinsBalance + 10, totalAttendance: kid.totalAttendance + 1 };
+    
+    // Optimistically update the UI
     setSelectedKid(updatedKid);
-
-    // Update the lists so if the user interacts with the same kid again,
-    // the balance is correct without a page refresh.
     setAllKids(allKids.map(k => k.id === kid.id ? updatedKid : k));
     setSearchResults(searchResults.map(k => k.id === kid.id ? updatedKid : k));
     setQuickCheckInKids(quickCheckInKids.map(k => k.id === kid.id ? updatedKid : k));
 
-
     if (isScannerOpen) {
       setScannerOpen(false);
-      // Use a timeout to allow the scanner dialog to close before showing the success overlay
-      setTimeout(() => {
-        setShowSuccess(true);
-      }, 300);
+      setTimeout(() => setShowSuccess(true), 300);
     } else {
       setShowSuccess(true);
+    }
+
+    try {
+        await checkInKid(kid.id);
+    } catch(e) {
+        console.error("Check-in failed:", e);
+        toast({
+            variant: "destructive",
+            title: "Check-in Failed",
+            description: "Could not sync with database. Please try again.",
+        });
+        
+        // Revert local state if DB update fails
+        setSelectedKid(originalKid);
+        setAllKids(allKids.map(k => k.id === originalKid.id ? originalKid : k));
+        setSearchResults(searchResults.map(k => k.id === originalKid.id ? originalKid : k));
+        setQuickCheckInKids(quickCheckInKids.map(k => k.id === originalKid.id ? originalKid : k));
     }
   };
 
