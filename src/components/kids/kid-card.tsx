@@ -9,7 +9,7 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Cake } from 'lucide-react';
+import { Cake, Coins } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type KidCardProps = {
@@ -60,10 +60,8 @@ export function KidCard({ kid }: KidCardProps) {
         )}
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
-        <div className="flex items-center gap-1">
-            <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-8V7h2v5h3l-4 4-4-4h3z"/>
-            </svg>
+        <div className="flex items-center gap-1.5 text-primary">
+            <Coins className="w-5 h-5" />
            <span className="font-bold text-lg">{kid.coinsBalance}</span>
         </div>
         <Badge variant="secondary">{kid.gender}</Badge>

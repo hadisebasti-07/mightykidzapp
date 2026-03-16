@@ -59,7 +59,7 @@ export default function VolunteersPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Contact</TableHead>
+                <TableHead className="hidden lg:table-cell">Contact</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -82,7 +82,10 @@ export default function VolunteersPage() {
                             .join('')}
                         </AvatarFallback>
                       </Avatar>
-                      {volunteer.name}
+                      <div>
+                        <p>{volunteer.name}</p>
+                        <p className="text-sm text-muted-foreground lg:hidden">{volunteer.email}</p>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -101,7 +104,7 @@ export default function VolunteersPage() {
                       {volunteer.role}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <div className="flex flex-col">
                       <span>{volunteer.email}</span>
                       <span className="text-muted-foreground">

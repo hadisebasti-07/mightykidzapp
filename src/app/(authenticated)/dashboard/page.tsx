@@ -35,7 +35,7 @@ export default function DashboardPage() {
           value={stats.kidsCheckedIn.toString()}
           icon={Users}
           change="+5 this week"
-          changeColor="text-green-500"
+          changeColor="text-primary"
           changeIcon={ArrowUp}
         />
         <StatCard
