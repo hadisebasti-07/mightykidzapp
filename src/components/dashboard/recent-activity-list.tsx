@@ -1,3 +1,5 @@
+'use client';
+
 import { getRecentActivities } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
