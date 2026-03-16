@@ -6,6 +6,7 @@ type StatCardProps = {
   value: string;
   icon: React.ElementType;
   iconColor?: string;
+  iconBg?: string;
   change?: string;
   changeColor?: string;
   changeIcon?: React.ElementType;
@@ -16,20 +17,30 @@ export function StatCard({
   value,
   icon: Icon,
   iconColor,
+  iconBg,
   change,
   changeColor,
   changeIcon: ChangeIcon,
 }: StatCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={cn('h-5 w-5 text-muted-foreground', iconColor)} />
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <div
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-xl',
+            iconBg ?? 'bg-muted'
+          )}
+        >
+          <Icon className={cn('h-5 w-5', iconColor ?? 'text-muted-foreground')} />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-4xl font-bold">{value}</div>
+        <div className="text-4xl font-bold tracking-tight">{value}</div>
         {change && (
-          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
             {ChangeIcon && (
               <ChangeIcon className={cn('h-3 w-3', changeColor)} />
             )}

@@ -25,10 +25,13 @@ export function PageHeader({
           {title}
         </h1>
         {description && (
-          <p className="text-lg text-muted-foreground">{description}</p>
+          <p className="text-base text-muted-foreground">{description}</p>
         )}
+        <div className="mt-1 h-1 w-12 rounded-full bg-primary" />
       </div>
-      {children && <div className="ml-auto flex items-center gap-2">{children}</div>}
+      {children && (
+        <div className="ml-auto flex items-center gap-2">{children}</div>
+      )}
     </div>
   );
 }

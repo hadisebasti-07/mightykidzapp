@@ -34,33 +34,39 @@ export default function DashboardPage() {
           title="Kids Checked In"
           value={stats.kidsCheckedIn.toString()}
           icon={Users}
+          iconColor="text-primary-foreground"
+          iconBg="bg-primary"
           change="+5 this week"
-          changeColor="text-primary"
+          changeColor="text-emerald-600"
           changeIcon={ArrowUp}
         />
         <StatCard
           title="Volunteers on Duty"
           value={stats.volunteersOnDuty.toString()}
           icon={CalendarCheck}
+          iconColor="text-sky-600"
+          iconBg="bg-sky-100"
         />
         <StatCard
           title="Today's Birthdays"
           value={stats.todaysBirthdays.toString()}
           icon={Cake}
-          iconColor="text-pink-500"
+          iconColor="text-pink-600"
+          iconBg="bg-pink-100"
         />
         <StatCard
           title="Gifts Redeemed"
           value={stats.giftsRedeemed.toString()}
           icon={Gift}
-          iconColor="text-accent"
+          iconColor="text-accent-foreground"
+          iconBg="bg-accent"
         />
       </div>
       <div className="grid gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="border-0 shadow-sm lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="size-5" />
+              <Activity className="size-5 text-primary" />
               Attendance Trend
             </CardTitle>
             <CardDescription>
@@ -71,10 +77,10 @@ export default function DashboardPage() {
             <AttendanceChart />
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserCheck className="size-5" />
+              <UserCheck className="size-5 text-accent" />
               Recent Activity
             </CardTitle>
             <CardDescription>
