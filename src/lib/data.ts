@@ -34,12 +34,6 @@ const giftFormSchema = z.object({
 export type GiftFormValues = z.infer<typeof giftFormSchema>;
 
 
-// This is a temporary in-memory cache for development.
-// In a real app, you wouldn't need this, as Firestore would be the source of truth.
-let kidsCache: Kid[] | null = null;
-let giftsCache: Gift[] | null = null;
-
-
 // This function now saves a new kid to the 'kids' collection in Firestore.
 export const addKid = async (data: KidFormValues) => {
   const birthDate = data.dateOfBirth;
@@ -68,7 +62,6 @@ export const addKid = async (data: KidFormValues) => {
 
   try {
     await setDoc(newKidRef, newKidData);
-    kidsCache = null; // Invalidate cache after adding
   } catch (e) {
     console.error("data.ts (addKid): Error adding document: ", e);
     throw e;
@@ -77,26 +70,14 @@ export const addKid = async (data: KidFormValues) => {
 
 // This function now fetches all kids from the 'kids' collection in Firestore.
 export const getKids = async (): Promise<Kid[]> => {
-  if (kidsCache) {
-    return kidsCache;
-  }
-
   const kidsCol = collection(db, 'kids');
   const q = query(kidsCol, orderBy('createdAt', 'desc'));
   const kidsSnapshot = await getDocs(q);
   const kidsList = kidsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kid));
-  
-  kidsCache = kidsList;
-
   return kidsList;
 };
 
 export const getKidById = async (kidId: string): Promise<Kid | null> => {
-  if (kidsCache) {
-    const cachedKid = kidsCache.find(k => k.id === kidId);
-    if (cachedKid) return cachedKid;
-  }
-  
   const kidRef = doc(db, 'kids', kidId);
   const kidSnap = await getDoc(kidRef);
 
@@ -124,7 +105,6 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
 
   try {
     await updateDoc(kidRef, updateData);
-    kidsCache = null; // Invalidate cache
   } catch (e) {
     console.error(`data.ts (updateKid): Error updating document with ID ${kidId}: `, e);
     throw e;
@@ -135,7 +115,6 @@ export const deleteKid = async (kidId: string) => {
   try {
     const kidRef = doc(db, 'kids', kidId);
     await deleteDoc(kidRef);
-    kidsCache = kidsCache?.filter(k => k.id !== kidId) ?? null;
   } catch (e) {
     console.error(`data.ts (deleteKid): Error deleting document with ID ${kidId}: `, e);
     throw e;
@@ -150,7 +129,6 @@ export const checkInKid = async (kidId: string) => {
       coinsBalance: increment(10),
       totalAttendance: increment(1)
     });
-    kidsCache = null; // Invalidate cache
   } catch (e) {
     console.error(`data.ts (checkInKid): Error updating document with ID ${kidId}: `, e);
     throw e;
@@ -160,22 +138,14 @@ export const checkInKid = async (kidId: string) => {
 
 // GIFT MANAGEMENT
 export const getGifts = async (): Promise<Gift[]> => {
-    if (giftsCache) {
-        return giftsCache;
-    }
     const giftsCol = collection(db, 'gifts');
     const q = query(giftsCol, orderBy('createdAt', 'desc'));
     const giftsSnapshot = await getDocs(q);
     const giftsList = giftsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gift));
-    giftsCache = giftsList;
     return giftsList;
 };
 
 export const getGiftById = async (giftId: string): Promise<Gift | null> => {
-    if (giftsCache) {
-        const cachedGift = giftsCache.find(g => g.id === giftId);
-        if (cachedGift) return cachedGift;
-    }
     const giftRef = doc(db, 'gifts', giftId);
     const giftSnap = await getDoc(giftRef);
     if (giftSnap.exists()) {
@@ -196,7 +166,6 @@ export const addGift = async (data: GiftFormValues) => {
 
     try {
         await setDoc(newGiftRef, newGiftData);
-        giftsCache = null;
     } catch(e) {
         console.error("data.ts (addGift): Error adding document: ", e);
         throw e;
@@ -213,7 +182,6 @@ export const updateGift = async (giftId: string, data: Partial<GiftFormValues>) 
 
     try {
         await updateDoc(giftRef, updateData);
-        giftsCache = null;
     } catch (e) {
         console.error(`data.ts (updateGift): Error updating document with ID ${giftId}: `, e);
         throw e;
@@ -224,7 +192,6 @@ export const deleteGift = async (giftId: string) => {
     try {
         const giftRef = doc(db, 'gifts', giftId);
         await deleteDoc(giftRef);
-        giftsCache = giftsCache?.filter(g => g.id !== giftId) ?? null;
     } catch (e) {
         console.error(`data.ts (deleteGift): Error deleting document with ID ${giftId}: `, e);
         throw e;
@@ -274,10 +241,6 @@ export const redeemGift = async (kidId: string, giftId: string) => {
         redeemedAt: serverTimestamp(),
       });
     });
-
-    // Invalidate caches
-    kidsCache = null;
-    giftsCache = null;
 
   } catch (e) {
     console.error("data.ts (redeemGift): Transaction failed: ", e);
