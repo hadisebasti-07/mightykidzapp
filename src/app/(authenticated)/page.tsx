@@ -392,7 +392,7 @@ export default function HomePage() {
               {isLoadingMessage ? (
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
               ) : (
-                <h2 className="font-headline text-3xl font-bold leading-tight tracking-tighter md:text-5xl">
+                <h2 className="font-headline text-3xl font-bold leading-tight tracking-tighter md:text-4xl">
                   {successMessage}
                 </h2>
               )}
