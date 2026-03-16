@@ -6,7 +6,7 @@ export function Header({ className }: { className?: string }) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border/60 bg-background/90 px-4 backdrop-blur-md md:px-6',
+        'sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border/50 bg-background/95 px-4 backdrop-blur-md md:px-6',
         className
       )}
     >
@@ -17,7 +17,7 @@ export function Header({ className }: { className?: string }) {
         <input
           type="search"
           placeholder="Search kids, gifts..."
-          className="h-9 w-full rounded-full border border-border bg-card pl-9 pr-4 text-sm transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:w-[220px] lg:w-[300px]"
+          className="h-10 w-full rounded-full border border-border bg-card pl-9 pr-4 text-sm transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:w-[200px] lg:w-[280px]"
         />
       </div>
     </header>

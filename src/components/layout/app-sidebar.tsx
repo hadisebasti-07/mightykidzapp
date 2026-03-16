@@ -19,7 +19,6 @@ import {
   Gift,
   ClipboardList,
   LogOut,
-  Settings,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -46,7 +45,7 @@ export function AppSidebar() {
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -65,12 +64,12 @@ export function AppSidebar() {
     }
   };
 
-
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="pb-2">
         <Logo />
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarMenu>
           {navItems.map((item) => {
@@ -85,9 +84,10 @@ export function AppSidebar() {
                   asChild
                   isActive={!!isActive}
                   tooltip={item.label}
+                  className="h-11 text-base"
                 >
                   <Link href={item.href}>
-                    <item.icon />
+                    <item.icon className="size-5" />
                     <span>{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
@@ -96,37 +96,32 @@ export function AppSidebar() {
           })}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="gap-4">
-        <Separator />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings">
-              <Settings />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
 
-        <div className="flex items-center gap-3 px-2">
-          <Avatar className="size-9">
+      <SidebarFooter className="gap-3 pb-4">
+        <Separator className="opacity-20" />
+
+        <div className="flex items-center gap-3 px-2 py-1">
+          <Avatar className="size-9 ring-2 ring-sidebar-primary/40">
             <AvatarImage
               src="https://picsum.photos/seed/admin/100/100"
               alt="Admin"
             />
-            <AvatarFallback>AD</AvatarFallback>
+            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-bold">
+              AD
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
               {user?.displayName || 'Admin User'}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="truncate text-xs text-sidebar-foreground/50">
               {user?.email}
             </p>
           </div>
           <SidebarMenuButton
             size="icon"
             variant="ghost"
-            className="ml-auto size-8 shrink-0"
+            className="ml-auto size-8 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
             tooltip="Log Out"
             onClick={handleLogout}
           >

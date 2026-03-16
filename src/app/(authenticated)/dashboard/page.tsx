@@ -58,8 +58,8 @@ export default function DashboardPage() {
           title="Gifts Redeemed"
           value={stats.giftsRedeemed.toString()}
           icon={Gift}
-          iconColor="text-accent-foreground"
-          iconBg="bg-accent"
+          iconColor="text-amber-700"
+          iconBg="bg-amber-100"
         />
       </div>
       <div className="grid gap-8 lg:grid-cols-3">
@@ -80,7 +80,7 @@ export default function DashboardPage() {
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserCheck className="size-5 text-accent" />
+              <UserCheck className="size-5 text-primary" />
               Recent Activity
             </CardTitle>
             <CardDescription>

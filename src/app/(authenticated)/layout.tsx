@@ -24,8 +24,6 @@ export default function AuthenticatedLayout({
   }, [user, loading, router]);
 
   if (loading || !user) {
-    // Show nothing while loading or if user is not authenticated.
-    // The useEffect hook will handle redirection.
     return null;
   }
 
@@ -34,7 +32,11 @@ export default function AuthenticatedLayout({
       <AppSidebar />
       <div className="flex h-full min-h-svh flex-1 flex-col">
         <Header />
-        <SidebarInset>{children}</SidebarInset>
+        <SidebarInset>
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );

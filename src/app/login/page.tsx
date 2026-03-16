@@ -48,15 +48,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
-      {/* Decorative background blobs */}
-      <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/25 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
-      <div className="pointer-events-none absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-2xl" />
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-background px-4 py-8">
+      {/* Green decorative blobs */}
+      <div className="pointer-events-none absolute -top-32 -left-32 h-80 w-80 rounded-full bg-primary/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-accent/25 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 right-1/4 h-48 w-48 rounded-full bg-primary/15 blur-2xl" />
 
-      <Card className="relative z-10 w-full max-w-sm border-0 shadow-xl">
+      <Card className="relative z-10 w-full max-w-sm border-0 shadow-2xl">
         <form onSubmit={handleLogin}>
-          <CardHeader className="text-center">
+          <CardHeader className="pb-4 text-center">
             <div className="mb-4 flex justify-center">
               <Logo />
             </div>
@@ -65,16 +65,18 @@ export default function LoginPage() {
               Sign in to manage your ministry.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid gap-5">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="admin@church.org"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="h-12 text-base"
               />
             </div>
             <div className="grid gap-2">
@@ -82,14 +84,20 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="h-12 text-base"
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full font-semibold" disabled={isLoading}>
+          <CardFooter className="pt-2">
+            <Button
+              type="submit"
+              className="h-12 w-full text-base font-semibold"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
