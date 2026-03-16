@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -16,25 +16,9 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   redemptionState: 'idle' | 'loading' | 'success' | 'error';
   successMessage: string;
-  onDialogOpen: () => void;
 };
 
-export function RedeemSuccessDialog({ gift, open, onOpenChange, redemptionState, successMessage, onDialogOpen }: Props) {
-  const hasTriggeredOpen = useRef(false);
-
-  useEffect(() => {
-    // When the dialog opens, trigger the redemption process in the parent
-    if (open && !hasTriggeredOpen.current) {
-      hasTriggeredOpen.current = true;
-      onDialogOpen();
-    }
-    
-    // Reset the flag when the dialog closes, so it can be triggered again next time
-    if (!open) {
-      hasTriggeredOpen.current = false;
-    }
-  }, [open, onDialogOpen]);
-
+export function RedeemSuccessDialog({ gift, open, onOpenChange, redemptionState, successMessage }: Props) {
   useEffect(() => {
     // Auto-close after success message is shown
     if (open && redemptionState === 'success' && successMessage) {

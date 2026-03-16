@@ -40,34 +40,20 @@ export default function StorePage() {
     fetchInitialData();
   }, []);
 
-  const handleRedeemClick = (gift: Gift) => {
-    if (selectedKid) {
-      setSelectedGift(gift);
-      setRedeemOpen(true);
-      setRedemptionState('idle'); // Reset state when opening
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Select a Child',
-        description: 'Please select a child before redeeming a gift.',
-      });
-    }
-  };
-  
-  const handleRedemptionProcess = async () => {
-    if (!selectedKid || !selectedGift) return;
+  const handleRedemptionProcess = async (kid: Kid, gift: Gift) => {
+    if (!kid || !gift) return;
 
     setRedemptionState('loading');
     setSuccessMessage('');
 
     try {
       // 1. Perform DB transaction
-      await redeemGift(selectedKid.id, selectedGift.id);
+      await redeemGift(kid.id, gift.id);
 
       // 2. After successful DB transaction, generate fun message
       const result = await generateGiftRedemptionMessage({
-        kidName: selectedKid.firstName,
-        giftName: selectedGift.name,
+        kidName: kid.firstName,
+        giftName: gift.name,
       });
       setSuccessMessage(result.message);
       setRedemptionState('success');
@@ -79,7 +65,7 @@ export default function StorePage() {
       setGifts(giftsData);
       
       // Update selectedKid with new balance
-      const updatedSelectedKid = kidsData.find(k => k.id === selectedKid.id);
+      const updatedSelectedKid = kidsData.find(k => k.id === kid.id);
       setSelectedKid(updatedSelectedKid || null);
 
     } catch (error: any) {
@@ -91,6 +77,20 @@ export default function StorePage() {
       });
       setRedemptionState('error');
       setRedeemOpen(false); // Close dialog on error
+    }
+  };
+
+  const handleRedeemClick = (gift: Gift) => {
+    if (selectedKid) {
+      setSelectedGift(gift);
+      setRedeemOpen(true);
+      handleRedemptionProcess(selectedKid, gift);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Select a Child',
+        description: 'Please select a child before redeeming a gift.',
+      });
     }
   };
 
@@ -152,7 +152,6 @@ export default function StorePage() {
             onOpenChange={setRedeemOpen}
             redemptionState={redemptionState}
             successMessage={successMessage}
-            onDialogOpen={handleRedemptionProcess}
         />
       )}
     </>
