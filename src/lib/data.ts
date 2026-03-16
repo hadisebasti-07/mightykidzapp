@@ -4,34 +4,7 @@ import { db } from './firebase/firebase';
 import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc, serverTimestamp, increment, runTransaction } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
-import { z } from 'zod';
-
-const kidFormSchema = z.object({
-  photoDataUrl: z.string().optional(),
-  firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
-  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
-  nickname: z.string().optional(),
-  dateOfBirth: z.date({
-    required_error: "A date of birth is required.",
-  }),
-  gender: z.enum(['Male', 'Female']),
-  parentName: z.string().min(2, { message: 'Parent name is required.' }),
-  parentPhone: z.string().min(10, { message: 'Phone number must be at least 10 digits.' }),
-  allergies: z.string().optional(),
-  medicalNotes: z.string().optional(),
-});
-type KidFormValues = z.infer<typeof kidFormSchema>;
-
-
-const giftFormSchema = z.object({
-    name: z.string().min(2, { message: 'Gift name must be at least 2 characters.' }),
-    description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
-    coinCost: z.coerce.number().int().positive({ message: 'Coin cost must be a positive number.' }),
-    stock: z.coerce.number().int().min(0, { message: 'Stock cannot be negative.' }),
-    active: z.boolean().default(true),
-    photoDataUrl: z.string().optional(),
-});
-export type GiftFormValues = z.infer<typeof giftFormSchema>;
+import { type KidFormValues, type GiftFormValues } from './schemas';
 
 
 // This function now saves a new kid to the 'kids' collection in Firestore.
@@ -47,7 +20,7 @@ export const addKid = async (data: KidFormValues) => {
     firstName: data.firstName,
     lastName: data.lastName,
     nickname: data.nickname || '',
-    dateOfBirth: birthDate.toISOString().split('T')[0],
+    dateOfBirth: birthDate,
     gender: data.gender,
     parentName: data.parentName,
     parentPhone: data.parentPhone,
@@ -56,7 +29,7 @@ export const addKid = async (data: KidFormValues) => {
     photoUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
     coinsBalance: 0,
     totalAttendance: 0,
-    birthdayMonth: birthDate.getMonth() + 1,
+    birthdayMonth: new Date(birthDate).getUTCMonth() + 1,
     createdAt: new Date().toISOString(),
   };
 
@@ -94,8 +67,8 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
   
   const updateData: any = { ...data };
   if (data.dateOfBirth) {
-    updateData.dateOfBirth = data.dateOfBirth.toISOString().split('T')[0];
-    updateData.birthdayMonth = data.dateOfBirth.getMonth() + 1;
+    updateData.dateOfBirth = data.dateOfBirth;
+    updateData.birthdayMonth = new Date(data.dateOfBirth).getUTCMonth() + 1;
   }
 
   if (data.photoDataUrl) {

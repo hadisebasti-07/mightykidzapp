@@ -3,9 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { format } from 'date-fns';
-import { CalendarIcon, Camera, UserCircle2, CameraOff } from 'lucide-react';
+import { Camera, UserCircle2, CameraOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,8 +24,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { addKid, updateKid } from '@/lib/data';
 import { useState, useRef, useEffect } from 'react';
@@ -35,23 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogTrigger, DialogContent } from '../ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Kid } from '@/lib/types';
-
-const kidFormSchema = z.object({
-  photoDataUrl: z.string().optional(),
-  firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
-  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
-  nickname: z.string().optional(),
-  dateOfBirth: z.date({
-    required_error: "A date of birth is required.",
-  }),
-  gender: z.enum(['Male', 'Female']),
-  parentName: z.string().min(2, { message: 'Parent name is required.' }),
-  parentPhone: z.string().min(10, { message: 'Phone number must be at least 10 digits.' }),
-  allergies: z.string().optional(),
-  medicalNotes: z.string().optional(),
-});
-
-type KidFormValues = z.infer<typeof kidFormSchema>;
+import { kidFormSchema, type KidFormValues } from '@/lib/schemas';
 
 export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
   const router = useRouter();
@@ -59,13 +39,13 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
 
   const defaultValues: Partial<KidFormValues> = kidToEdit ? {
       ...kidToEdit,
-      dateOfBirth: new Date(kidToEdit.dateOfBirth),
       photoDataUrl: kidToEdit.photoUrl,
   } : {
       photoDataUrl: '',
       firstName: '',
       lastName: '',
       nickname: '',
+      dateOfBirth: '',
       gender: 'Male',
       parentName: '',
       parentPhone: '',
@@ -244,42 +224,14 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
               control={form.control}
               name="dateOfBirth"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Date of Birth</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto min-w-[280px] p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      captionLayout="dropdown-buttons"
-                      fromYear={new Date().getFullYear() - 18}
-                      toYear={new Date().getFullYear()}
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
-                    />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <Input placeholder="YYYY-MM-DD" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Please use YYYY-MM-DD format.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { Camera, UserCircle2, CameraOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,21 +18,13 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { addGift, updateGift, type GiftFormValues } from '@/lib/data';
+import { addGift, updateGift } from '@/lib/data';
 import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogTrigger, DialogContent } from '../ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Gift } from '@/lib/types';
-
-const giftFormSchema = z.object({
-    name: z.string().min(2, { message: 'Gift name must be at least 2 characters.' }),
-    description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
-    coinCost: z.coerce.number().int().positive({ message: 'Coin cost must be a positive number.' }),
-    stock: z.coerce.number().int().min(0, { message: 'Stock cannot be negative.' }),
-    active: z.boolean().default(true),
-    photoDataUrl: z.string().optional(),
-});
+import { giftFormSchema, type GiftFormValues } from '@/lib/schemas';
 
 
 export function GiftForm({ giftToEdit }: { giftToEdit?: Gift }) {
