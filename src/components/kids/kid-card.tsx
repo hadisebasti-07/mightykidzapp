@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Kid } from '@/lib/types';
 import {
   Card,
@@ -9,14 +10,28 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Cake, Coins } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Cake,
+  Coins,
+  MoreVertical,
+  Edit,
+  Trash2,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useEffect, useState } from 'react';
 
 type KidCardProps = {
   kid: Kid;
+  onDelete: () => void;
 };
 
-export function KidCard({ kid }: KidCardProps) {
+export function KidCard({ kid, onDelete }: KidCardProps) {
   const [isBirthdayMonth, setIsBirthdayMonth] = useState(false);
   const [age, setAge] = useState<number | null>(null);
 
@@ -49,6 +64,27 @@ export function KidCard({ kid }: KidCardProps) {
               Birthday!
             </Badge>
           )}
+           <div className="absolute top-2 right-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-background/50 hover:bg-background">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={`/kids/${kid.id}/edit`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    <span>Edit</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-4">

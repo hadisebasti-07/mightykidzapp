@@ -29,11 +29,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
-import { addKid } from '@/lib/data';
+import { addKid, updateKid } from '@/lib/data';
 import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Dialog, DialogTrigger, DialogContent } from '../ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Kid } from '@/lib/types';
 
 const kidFormSchema = z.object({
   photoDataUrl: z.string().optional(),
@@ -52,21 +53,26 @@ const kidFormSchema = z.object({
 
 type KidFormValues = z.infer<typeof kidFormSchema>;
 
-const defaultValues: Partial<KidFormValues> = {
-  photoDataUrl: '',
-  firstName: '',
-  lastName: '',
-  nickname: '',
-  gender: 'Male',
-  parentName: '',
-  parentPhone: '',
-  allergies: '',
-  medicalNotes: '',
-};
-
-export function KidForm() {
+export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
   const router = useRouter();
   const { toast } = useToast();
+
+  const defaultValues: Partial<KidFormValues> = kidToEdit ? {
+      ...kidToEdit,
+      dateOfBirth: new Date(kidToEdit.dateOfBirth),
+      photoDataUrl: kidToEdit.photoUrl,
+  } : {
+      photoDataUrl: '',
+      firstName: '',
+      lastName: '',
+      nickname: '',
+      gender: 'Male',
+      parentName: '',
+      parentPhone: '',
+      allergies: '',
+      medicalNotes: '',
+  };
+
   const form = useForm<KidFormValues>({
     resolver: zodResolver(kidFormSchema),
     defaultValues,
@@ -120,13 +126,29 @@ export function KidForm() {
   };
 
   async function onSubmit(data: KidFormValues) {
-    console.log('KidForm: Submitting data', data);
-    await addKid(data);
-    toast({
-      title: 'Kid Profile Created',
-      description: `The profile for ${data.firstName} ${data.lastName} has been created.`,
-    });
-    router.push('/kids');
+    try {
+      if (kidToEdit) {
+        await updateKid(kidToEdit.id, data);
+        toast({
+          title: 'Kid Profile Updated',
+          description: `The profile for ${data.firstName} ${data.lastName} has been updated.`,
+        });
+        router.push('/kids');
+      } else {
+        await addKid(data);
+        toast({
+          title: 'Kid Profile Created',
+          description: `The profile for ${data.firstName} ${data.lastName} has been created.`,
+        });
+        router.push('/kids');
+      }
+    } catch(e: any) {
+        toast({
+            variant: 'destructive',
+            title: kidToEdit ? 'Update Failed' : 'Creation Failed',
+            description: e.message || 'An unexpected error occurred.',
+        });
+    }
   }
 
   return (
@@ -352,7 +374,7 @@ export function KidForm() {
           >
             Cancel
           </Button>
-          <Button type="submit">Create Kid Profile</Button>
+          <Button type="submit">{kidToEdit ? 'Save Changes' : 'Create Kid Profile'}</Button>
         </div>
       </form>
     </Form>

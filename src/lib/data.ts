@@ -1,8 +1,25 @@
 import { db } from './firebase/firebase';
-import { collection, doc, setDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { PlaceHolderImages } from './placeholder-images';
+import { z } from 'zod';
+
+const kidFormSchema = z.object({
+  photoDataUrl: z.string().optional(),
+  firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
+  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
+  nickname: z.string().optional(),
+  dateOfBirth: z.date({
+    required_error: "A date of birth is required.",
+  }),
+  gender: z.enum(['Male', 'Female']),
+  parentName: z.string().min(2, { message: 'Parent name is required.' }),
+  parentPhone: z.string().min(10, { message: 'Phone number must be at least 10 digits.' }),
+  allergies: z.string().optional(),
+  medicalNotes: z.string().optional(),
+});
+type KidFormValues = z.infer<typeof kidFormSchema>;
 
 // This is a temporary in-memory cache for development.
 // In a real app, you wouldn't need this, as Firestore would be the source of truth.
@@ -10,18 +27,7 @@ let kidsCache: Kid[] | null = null;
 
 
 // This function now saves a new kid to the 'kids' collection in Firestore.
-export const addKid = async (data: {
-  firstName: string;
-  lastName: string;
-  nickname?: string;
-  dateOfBirth: Date;
-  gender: 'Male' | 'Female';
-  parentName: string;
-  parentPhone: string;
-  allergies?: string;
-  medicalNotes?: string;
-  photoDataUrl?: string;
-}) => {
+export const addKid = async (data: KidFormValues) => {
   const birthDate = data.dateOfBirth;
 
   // 1. Create a new doc ref with an auto-generated ID
@@ -79,6 +85,62 @@ export const getKids = async (): Promise<Kid[]> => {
   }
 
   return kidsList;
+};
+
+export const getKidById = async (kidId: string): Promise<Kid | null> => {
+  // Try cache first
+  if (kidsCache) {
+    const cachedKid = kidsCache.find(k => k.id === kidId);
+    if (cachedKid) return cachedKid;
+  }
+  
+  const kidRef = doc(db, 'kids', kidId);
+  const kidSnap = await getDoc(kidRef);
+
+  if (kidSnap.exists()) {
+    return { id: kidSnap.id, ...kidSnap.data() } as Kid;
+  } else {
+    console.warn(`No kid found with ID: ${kidId}`);
+    return null;
+  }
+};
+
+
+export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => {
+  const kidRef = doc(db, 'kids', kidId);
+  
+  const updateData: any = { ...data };
+  if (data.dateOfBirth) {
+    updateData.dateOfBirth = data.dateOfBirth.toISOString().split('T')[0];
+    updateData.birthdayMonth = data.dateOfBirth.getMonth() + 1;
+  }
+
+  // Handle photo URL
+  if (data.photoDataUrl) {
+    updateData.photoUrl = data.photoDataUrl;
+  }
+  delete updateData.photoDataUrl;
+
+  try {
+    await updateDoc(kidRef, updateData);
+    console.log(`data.ts (updateKid): Document with ID ${kidId} updated successfully!`);
+    kidsCache = null; // Invalidate cache
+  } catch (e) {
+    console.error(`data.ts (updateKid): Error updating document with ID ${kidId}: `, e);
+    throw e;
+  }
+};
+
+export const deleteKid = async (kidId: string) => {
+  try {
+    const kidRef = doc(db, 'kids', kidId);
+    await deleteDoc(kidRef);
+    console.log(`data.ts (deleteKid): Document with ID ${kidId} deleted successfully!`);
+    kidsCache = kidsCache?.filter(k => k.id !== kidId) ?? null;
+  } catch (e) {
+    console.error(`data.ts (deleteKid): Error deleting document with ID ${kidId}: `, e);
+    throw e;
+  }
 };
 
 export const gifts: Gift[] = [
