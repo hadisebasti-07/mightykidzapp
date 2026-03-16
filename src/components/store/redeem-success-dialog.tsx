@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,11 @@ export function RedeemSuccessDialog({ kid, gift, open, onOpenChange, onRedemptio
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const redemptionInitiated = useRef(false);
 
   useEffect(() => {
-    if (open) {
+    if (open && !redemptionInitiated.current) {
+      redemptionInitiated.current = true;
       const performRedemption = async () => {
         setIsLoading(true);
         setMessage(''); // Reset message
@@ -56,6 +58,8 @@ export function RedeemSuccessDialog({ kid, gift, open, onOpenChange, onRedemptio
       };
 
       performRedemption();
+    } else if (!open) {
+      redemptionInitiated.current = false; // Reset when dialog closes
     }
   }, [open, kid, gift, onOpenChange, toast, onRedemptionComplete]);
 
