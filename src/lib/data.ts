@@ -1,7 +1,7 @@
 'use client';
 
 import { db } from './firebase/firebase';
-import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc, serverTimestamp, increment, runTransaction } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { z } from 'zod';
@@ -229,6 +229,60 @@ export const deleteGift = async (giftId: string) => {
         console.error(`data.ts (deleteGift): Error deleting document with ID ${giftId}: `, e);
         throw e;
     }
+};
+
+export const redeemGift = async (kidId: string, giftId: string) => {
+  const kidRef = doc(db, 'kids', kidId);
+  const giftRef = doc(db, 'gifts', giftId);
+  const redemptionRef = doc(collection(db, 'kids', kidId, 'redemptions'));
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const kidDoc = await transaction.get(kidRef);
+      const giftDoc = await transaction.get(giftRef);
+
+      if (!kidDoc.exists() || !giftDoc.exists()) {
+        throw new Error("Kid or Gift not found!");
+      }
+
+      const kidData = kidDoc.data();
+      const giftData = giftDoc.data();
+
+      if (kidData.coinsBalance < giftData.coinCost) {
+        throw new Error("Not enough coins!");
+      }
+
+      if (giftData.stock <= 0) {
+        throw new Error("Gift is out of stock!");
+      }
+
+      // Perform the updates
+      transaction.update(kidRef, {
+        coinsBalance: increment(-giftData.coinCost)
+      });
+      transaction.update(giftRef, {
+        stock: increment(-1)
+      });
+
+      // Create a redemption record
+      transaction.set(redemptionRef, {
+        id: redemptionRef.id,
+        kidId: kidId,
+        giftId: giftId,
+        giftName: giftData.name,
+        coinCost: giftData.coinCost,
+        redeemedAt: serverTimestamp(),
+      });
+    });
+
+    // Invalidate caches
+    kidsCache = null;
+    giftsCache = null;
+
+  } catch (e) {
+    console.error("data.ts (redeemGift): Transaction failed: ", e);
+    throw e;
+  }
 };
 
 

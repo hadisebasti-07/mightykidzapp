@@ -24,14 +24,26 @@ export default function StorePage() {
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   const [isRedeemOpen, setRedeemOpen] = useState(false);
 
+  const fetchAndSetData = async () => {
+    const kidsData = await getKids();
+    setKids(kidsData);
+    const giftsData = await getGifts();
+    setGifts(giftsData);
+    
+    if (selectedKid) {
+        const updatedSelectedKid = kidsData.find(k => k.id === selectedKid.id);
+        setSelectedKid(updatedSelectedKid || null);
+    }
+  };
+
   useEffect(() => {
-    const fetchKidsAndGifts = async () => {
-      const kidsData = await getKids();
-      setKids(kidsData);
-      const giftsData = await getGifts();
-      setGifts(giftsData);
+    const fetchInitialData = async () => {
+        const kidsData = await getKids();
+        setKids(kidsData);
+        const giftsData = await getGifts();
+        setGifts(giftsData);
     };
-    fetchKidsAndGifts();
+    fetchInitialData();
   }, []);
 
   const handleRedeem = (gift: Gift) => {
@@ -89,7 +101,7 @@ export default function StorePage() {
                 key={gift.id}
                 gift={gift}
                 onRedeem={() => handleRedeem(gift)}
-                canRedeem={!!selectedKid && selectedKid.coinsBalance >= gift.coinCost}
+                canRedeem={!!selectedKid && selectedKid.coinsBalance >= gift.coinCost && gift.stock > 0}
               />
             ))}
         </div>
@@ -100,6 +112,7 @@ export default function StorePage() {
             gift={selectedGift}
             open={isRedeemOpen}
             onOpenChange={setRedeemOpen}
+            onRedemptionComplete={fetchAndSetData}
         />
       )}
     </>
