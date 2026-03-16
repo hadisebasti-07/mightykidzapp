@@ -1,0 +1,76 @@
+{
+  "placeholderImages": [
+    {
+      "id": "kid1",
+      "description": "A happy young boy smiling.",
+      "imageUrl": "https://picsum.photos/seed/kid1/400/400",
+      "imageHint": "happy boy"
+    },
+    {
+      "id": "kid2",
+      "description": "A young girl with a cheerful expression.",
+      "imageUrl": "https://picsum.photos/seed/kid2/400/400",
+      "imageHint": "cheerful girl"
+    },
+    {
+      "id": "kid3",
+      "description": "A boy playing with building blocks.",
+      "imageUrl": "https://picsum.photos/seed/kid3/400/400",
+      "imageHint": "boy playing"
+    },
+    {
+      "id": "kid4",
+      "description": "A girl laughing in a garden.",
+      "imageUrl": "https://picsum.photos/seed/kid4/400/400",
+      "imageHint": "girl laughing"
+    },
+    {
+      "id": "kid5",
+      "description": "A boy with a curious look on his face.",
+      "imageUrl": "https://picsum.photos/seed/kid5/400/400",
+      "imageHint": "curious boy"
+    },
+    {
+      "id": "kid6",
+      "description": "A girl painting a picture.",
+      "imageUrl": "https://picsum.photos/seed/kid6/400/400",
+      "imageHint": "girl painting"
+    },
+    {
+      "id": "gift1",
+      "description": "A collection of colorful, glittery stickers.",
+      "imageUrl": "https://picsum.photos/seed/gift1/600/400",
+      "imageHint": "colorful stickers"
+    },
+    {
+      "id": "gift2",
+      "description": "A bright, multi-colored bouncy ball.",
+      "imageUrl": "https://picsum.photos/seed/gift2/600/400",
+      "imageHint": "bouncy ball"
+    },
+    {
+      "id": "gift3",
+      "description": "A small set of interlocking building blocks.",
+      "imageUrl": "https://picsum.photos/seed/gift3/600/400",
+      "imageHint": "lego castle"
+    },
+    {
+      "id": "gift4",
+      "description": "Plastic stars that glow in the dark.",
+      "imageUrl": "https://picsum.photos/seed/gift4/600/400",
+      "imageHint": "glow stars"
+    },
+    {
+      "id": "gift5",
+      "description": "A clear bag filled with assorted candies.",
+      "imageUrl": "https://picsum.photos/seed/gift5/600/400",
+      "imageHint": "assorted candy"
+    },
+    {
+      "id": "gift6",
+      "description": "A t-shirt with a fun logo.",
+      "imageUrl": "https://picsum.photos/seed/gift6/600/400",
+      "imageHint": "kids t-shirt"
+    }
+  ]
+}
