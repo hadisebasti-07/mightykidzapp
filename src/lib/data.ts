@@ -1,8 +1,7 @@
 import { db } from './firebase/firebase';
-import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, query, orderBy, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
-import { PlaceHolderImages } from './placeholder-images';
 import { z } from 'zod';
 
 const kidFormSchema = z.object({
@@ -21,9 +20,22 @@ const kidFormSchema = z.object({
 });
 type KidFormValues = z.infer<typeof kidFormSchema>;
 
+
+const giftFormSchema = z.object({
+    name: z.string().min(2, { message: 'Gift name must be at least 2 characters.' }),
+    description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
+    coinCost: z.coerce.number().int().positive({ message: 'Coin cost must be a positive number.' }),
+    stock: z.coerce.number().int().min(0, { message: 'Stock cannot be negative.' }),
+    active: z.boolean().default(true),
+    photoDataUrl: z.string().optional(),
+});
+export type GiftFormValues = z.infer<typeof giftFormSchema>;
+
+
 // This is a temporary in-memory cache for development.
 // In a real app, you wouldn't need this, as Firestore would be the source of truth.
 let kidsCache: Kid[] | null = null;
+let giftsCache: Gift[] | null = null;
 
 
 // This function now saves a new kid to the 'kids' collection in Firestore.
@@ -52,24 +64,18 @@ export const addKid = async (data: KidFormValues) => {
     createdAt: new Date().toISOString(),
   };
 
-  console.log(`data.ts (addKid): Attempting to create new kid with ID: ${newKidRef.id}`, newKidData);
   try {
-    // 3. Use setDoc to save the document. This requires admin permissions from your rules.
     await setDoc(newKidRef, newKidData);
-    console.log('data.ts (addKid): Document written successfully!');
     kidsCache = null; // Invalidate cache after adding
   } catch (e) {
     console.error("data.ts (addKid): Error adding document: ", e);
-    // Re-throw the error so the form can catch it if needed
     throw e;
   }
 };
 
 // This function now fetches all kids from the 'kids' collection in Firestore.
 export const getKids = async (): Promise<Kid[]> => {
-  // Use cache in development to see newly added kids, since server reloads reset module-level variables
-  if (process.env.NODE_ENV === 'development' && kidsCache) {
-    console.log('KidsPage: Using cached kids data.');
+  if (kidsCache) {
     return kidsCache;
   }
 
@@ -78,17 +84,12 @@ export const getKids = async (): Promise<Kid[]> => {
   const kidsSnapshot = await getDocs(q);
   const kidsList = kidsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kid));
   
-  console.log(`Server: Fetched kids on page load. Total kids: ${kidsList.length}`);
-  
-  if (process.env.NODE_ENV === 'development') {
-    kidsCache = kidsList;
-  }
+  kidsCache = kidsList;
 
   return kidsList;
 };
 
 export const getKidById = async (kidId: string): Promise<Kid | null> => {
-  // Try cache first
   if (kidsCache) {
     const cachedKid = kidsCache.find(k => k.id === kidId);
     if (cachedKid) return cachedKid;
@@ -100,7 +101,6 @@ export const getKidById = async (kidId: string): Promise<Kid | null> => {
   if (kidSnap.exists()) {
     return { id: kidSnap.id, ...kidSnap.data() } as Kid;
   } else {
-    console.warn(`No kid found with ID: ${kidId}`);
     return null;
   }
 };
@@ -115,7 +115,6 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
     updateData.birthdayMonth = data.dateOfBirth.getMonth() + 1;
   }
 
-  // Handle photo URL
   if (data.photoDataUrl) {
     updateData.photoUrl = data.photoDataUrl;
   }
@@ -123,7 +122,6 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
 
   try {
     await updateDoc(kidRef, updateData);
-    console.log(`data.ts (updateKid): Document with ID ${kidId} updated successfully!`);
     kidsCache = null; // Invalidate cache
   } catch (e) {
     console.error(`data.ts (updateKid): Error updating document with ID ${kidId}: `, e);
@@ -135,7 +133,6 @@ export const deleteKid = async (kidId: string) => {
   try {
     const kidRef = doc(db, 'kids', kidId);
     await deleteDoc(kidRef);
-    console.log(`data.ts (deleteKid): Document with ID ${kidId} deleted successfully!`);
     kidsCache = kidsCache?.filter(k => k.id !== kidId) ?? null;
   } catch (e) {
     console.error(`data.ts (deleteKid): Error deleting document with ID ${kidId}: `, e);
@@ -143,62 +140,79 @@ export const deleteKid = async (kidId: string) => {
   }
 };
 
-export const gifts: Gift[] = [
-  {
-    id: 'g1',
-    name: 'Super Sparkle Sticker Pack',
-    description: 'A pack of 50 glittery and fun stickers.',
-    coinCost: 50,
-    imageUrl: PlaceHolderImages.find(p => p.id === 'gift1')?.imageUrl || '',
-    stock: 100,
-    active: true,
-  },
-  {
-    id: 'g2',
-    name: 'Bouncy Ball Bonanza',
-    description: 'A super bouncy ball with bright colors.',
-    coinCost: 75,
-    imageUrl: PlaceHolderImages.find(p => p.id === 'gift2')?.imageUrl || '',
-    stock: 50,
-    active: true,
-  },
-  {
-    id: 'g3',
-    name: 'Kingdom Builders Lego Set',
-    description: 'Small Lego set to build a cool castle.',
-    coinCost: 200,
-    imageUrl: PlaceHolderImages.find(p => p.id === 'gift3')?.imageUrl || '',
-    stock: 20,
-    active: true,
-  },
-  {
-    id: 'g4',
-    name: 'Glow-in-the-Dark Stars',
-    description: 'Decorate your room with these awesome stars.',
-    coinCost: 120,
-    imageUrl: PlaceHolderImages.find(p => p.id === 'gift4')?.imageUrl || '',
-    stock: 40,
-    active: true,
-  },
-  {
-    id: 'g5',
-    name: 'Candy Surprise Bag',
-    description: 'A small bag filled with yummy candy.',
-    coinCost: 100,
-    imageUrl: PlaceHolderImages.find(p => p.id === 'gift5')?.imageUrl || '',
-    stock: 80,
-    active: true,
-  },
-  {
-    id: 'g6',
-    name: 'MightyKidz T-Shirt',
-    description: 'A cool t-shirt with the MightyKidz logo!',
-    coinCost: 500,
-    imageUrl: PlaceHolderImages.find(p => p.id === 'gift6')?.imageUrl || '',
-    stock: 15,
-    active: false,
-  },
-];
+// GIFT MANAGEMENT
+export const getGifts = async (): Promise<Gift[]> => {
+    if (giftsCache) {
+        return giftsCache;
+    }
+    const giftsCol = collection(db, 'gifts');
+    const q = query(giftsCol, orderBy('createdAt', 'desc'));
+    const giftsSnapshot = await getDocs(q);
+    const giftsList = giftsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gift));
+    giftsCache = giftsList;
+    return giftsList;
+};
+
+export const getGiftById = async (giftId: string): Promise<Gift | null> => {
+    if (giftsCache) {
+        const cachedGift = giftsCache.find(g => g.id === giftId);
+        if (cachedGift) return cachedGift;
+    }
+    const giftRef = doc(db, 'gifts', giftId);
+    const giftSnap = await getDoc(giftRef);
+    if (giftSnap.exists()) {
+        return { id: giftSnap.id, ...giftSnap.data() } as Gift;
+    }
+    return null;
+};
+
+export const addGift = async (data: GiftFormValues) => {
+    const newGiftRef = doc(collection(db, 'gifts'));
+    const newGiftData = {
+        ...data,
+        id: newGiftRef.id,
+        imageUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.name}/600/400`,
+        createdAt: new Date().toISOString(),
+    };
+    delete (newGiftData as any).photoDataUrl;
+
+    try {
+        await setDoc(newGiftRef, newGiftData);
+        giftsCache = null;
+    } catch(e) {
+        console.error("data.ts (addGift): Error adding document: ", e);
+        throw e;
+    }
+};
+
+export const updateGift = async (giftId: string, data: Partial<GiftFormValues>) => {
+    const giftRef = doc(db, 'gifts', giftId);
+    const updateData: any = { ...data };
+    if (data.photoDataUrl) {
+        updateData.imageUrl = data.photoDataUrl;
+    }
+    delete updateData.photoDataUrl;
+
+    try {
+        await updateDoc(giftRef, updateData);
+        giftsCache = null;
+    } catch (e) {
+        console.error(`data.ts (updateGift): Error updating document with ID ${giftId}: `, e);
+        throw e;
+    }
+};
+
+export const deleteGift = async (giftId: string) => {
+    try {
+        const giftRef = doc(db, 'gifts', giftId);
+        await deleteDoc(giftRef);
+        giftsCache = giftsCache?.filter(g => g.id !== giftId) ?? null;
+    } catch (e) {
+        console.error(`data.ts (deleteGift): Error deleting document with ID ${giftId}: `, e);
+        throw e;
+    }
+};
+
 
 export const volunteers: Volunteer[] = [
   {
@@ -237,10 +251,6 @@ export const volunteers: Volunteer[] = [
     role: 'Volunteer',
   },
 ];
-
-export const getGifts = (): Gift[] => gifts;
-export const getGiftById = (id: string): Gift | undefined =>
-  gifts.find((g) => g.id === id);
 
 export const getVolunteers = (): Volunteer[] => volunteers;
 

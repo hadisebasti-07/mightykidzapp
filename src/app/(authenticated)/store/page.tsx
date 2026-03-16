@@ -5,8 +5,7 @@ import { getGifts, getKids } from '@/lib/data';
 import { GiftCard } from '@/components/store/gift-card';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, SlidersHorizontal, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Settings } from 'lucide-react';
 import { Gift, Kid } from '@/lib/types';
 import { RedeemSuccessDialog } from '@/components/store/redeem-success-dialog';
 import {
@@ -16,20 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import Link from 'next/link';
 
 export default function StorePage() {
-  const gifts = getGifts();
+  const [gifts, setGifts] = useState<Gift[]>([]);
   const [kids, setKids] = useState<Kid[]>([]);
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   const [isRedeemOpen, setRedeemOpen] = useState(false);
 
   useEffect(() => {
-    const fetchKids = async () => {
+    const fetchKidsAndGifts = async () => {
       const kidsData = await getKids();
       setKids(kidsData);
+      const giftsData = await getGifts();
+      setGifts(giftsData);
     };
-    fetchKids();
+    fetchKidsAndGifts();
   }, []);
 
   const handleRedeem = (gift: Gift) => {
@@ -49,9 +51,11 @@ export default function StorePage() {
           title="Reward Store"
           description="Redeem coins for awesome gifts."
         >
-          <Button>
-            <PlusCircle />
-            Add Gift
+          <Button asChild>
+            <Link href="/store/manage">
+              <Settings />
+              Manage Gifts
+            </Link>
           </Button>
         </PageHeader>
         <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 sm:flex-row sm:items-center">

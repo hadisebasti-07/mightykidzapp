@@ -24,6 +24,7 @@ export type Gift = {
   imageUrl: string;
   stock: number;
   active: boolean;
+  createdAt: string;
 };
 
 export type Volunteer = {
