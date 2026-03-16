@@ -20,6 +20,7 @@ export const addKid = async (data: {
   parentPhone: string;
   allergies?: string;
   medicalNotes?: string;
+  photoDataUrl?: string;
 }) => {
   const birthDate = data.dateOfBirth;
 
@@ -38,7 +39,7 @@ export const addKid = async (data: {
     parentPhone: data.parentPhone,
     allergies: data.allergies || '',
     medicalNotes: data.medicalNotes || '',
-    photoUrl: `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
+    photoUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
     coinsBalance: 0,
     totalAttendance: 0,
     birthdayMonth: birthDate.getMonth() + 1,

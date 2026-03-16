@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Camera, UserCircle2, CameraOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,8 +30,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { addKid } from '@/lib/data';
+import { useState, useRef, useEffect } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Dialog, DialogTrigger, DialogContent } from '../ui/dialog';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const kidFormSchema = z.object({
+  photoDataUrl: z.string().optional(),
   firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
   lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
   nickname: z.string().optional(),
@@ -48,6 +53,7 @@ const kidFormSchema = z.object({
 type KidFormValues = z.infer<typeof kidFormSchema>;
 
 const defaultValues: Partial<KidFormValues> = {
+  photoDataUrl: '',
   firstName: '',
   lastName: '',
   nickname: '',
@@ -67,6 +73,52 @@ export function KidForm() {
     mode: 'onChange',
   });
 
+  const [isCameraOpen, setCameraOpen] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const photoValue = form.watch('photoDataUrl');
+
+  useEffect(() => {
+    if (isCameraOpen) {
+      const getCameraPermission = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+        }
+      };
+      getCameraPermission();
+    } else {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    }
+  }, [isCameraOpen]);
+
+  const handleTakePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    form.setValue('photoDataUrl', dataUrl, { shouldValidate: true });
+    setCameraOpen(false);
+  };
+
   async function onSubmit(data: KidFormValues) {
     console.log('KidForm: Submitting data', data);
     await addKid(data);
@@ -80,6 +132,50 @@ export function KidForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="photoDataUrl"
+          render={({ field }) => (
+            <FormItem className="flex flex-col items-center gap-4">
+              <FormLabel className="text-base font-semibold">Profile Photo</FormLabel>
+              <Avatar className="h-32 w-32 border-4 border-muted">
+                <AvatarImage src={field.value} alt="Kid's photo" />
+                <AvatarFallback className="bg-background">
+                  <UserCircle2 className="h-24 w-24 text-muted-foreground/50" />
+                </AvatarFallback>
+              </Avatar>
+              <Dialog open={isCameraOpen} onOpenChange={setCameraOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline">
+                    <Camera className="mr-2" />
+                    {photoValue ? 'Retake Photo' : 'Take Photo'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  {hasCameraPermission === true ? (
+                    <div className="flex flex-col gap-4">
+                      <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay playsInline muted />
+                      <Button type="button" onClick={handleTakePhoto}>Take Picture</Button>
+                    </div>
+                  ) : (
+                    <Alert variant={hasCameraPermission === false ? "destructive" : "default"}>
+                       {hasCameraPermission === false ? <CameraOff /> : <Camera />}
+                      <AlertTitle>{hasCameraPermission === false ? 'Camera Access Denied' : 'Camera Access Required'}</AlertTitle>
+                      <AlertDescription>
+                        {hasCameraPermission === false
+                          ? 'Please allow camera access in your browser settings to take a photo.'
+                          : 'Requesting camera permission...'}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </DialogContent>
+              </Dialog>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <canvas ref={canvasRef} className="hidden" />
+        
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
             <FormField
               control={form.control}
