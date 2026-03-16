@@ -12,7 +12,7 @@ import {
   UserPlus,
   CameraOff,
   Loader2,
-  Sparkles,
+  Coins,
 } from 'lucide-react';
 import { getKids, getRecentActivities } from '@/lib/data';
 import { Kid } from '@/lib/types';
@@ -162,7 +162,18 @@ export default function HomePage() {
   };
 
   const handleCheckIn = (kid: Kid) => {
-    setSelectedKid(kid);
+    // In a real app, this would be an update to the database.
+    // For the prototype, we'll simulate the update in the local state.
+    const updatedKid = { ...kid, coinsBalance: kid.coinsBalance + 10 };
+    setSelectedKid(updatedKid);
+
+    // Update the lists so if the user interacts with the same kid again,
+    // the balance is correct without a page refresh.
+    setAllKids(allKids.map(k => k.id === kid.id ? updatedKid : k));
+    setSearchResults(searchResults.map(k => k.id === kid.id ? updatedKid : k));
+    setQuickCheckInKids(quickCheckInKids.map(k => k.id === kid.id ? updatedKid : k));
+
+
     if (isScannerOpen) {
       setScannerOpen(false);
       // Use a timeout to allow the scanner dialog to close before showing the success overlay
@@ -398,9 +409,9 @@ export default function HomePage() {
               )}
             </div>
             <div className="mt-4 flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-primary">
-              <Sparkles className="size-5 text-primary" />
+              <Coins className="size-5 text-primary" />
               <span className="text-primary-foreground/90">
-                +10 Coins Earned!
+                {selectedKid.coinsBalance} Coins Total
               </span>
             </div>
           </div>
