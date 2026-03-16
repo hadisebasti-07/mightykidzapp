@@ -15,20 +15,19 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   redemptionState: 'idle' | 'loading' | 'success' | 'error';
-  successMessage: string;
 };
 
-export function RedeemSuccessDialog({ gift, open, onOpenChange, redemptionState, successMessage }: Props) {
+export function RedeemSuccessDialog({ gift, open, onOpenChange, redemptionState }: Props) {
   useEffect(() => {
-    // Auto-close after success message is shown
-    if (open && redemptionState === 'success' && successMessage) {
+    // Auto-close after success
+    if (open && redemptionState === 'success') {
       const timer = setTimeout(() => {
         onOpenChange(false);
       }, 6000);
 
       return () => clearTimeout(timer);
     }
-  }, [open, redemptionState, successMessage, onOpenChange]);
+  }, [open, redemptionState, onOpenChange]);
 
   const isLoading = redemptionState === 'loading';
   const isSuccess = redemptionState === 'success';
@@ -36,7 +35,7 @@ export function RedeemSuccessDialog({ gift, open, onOpenChange, redemptionState,
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-screen w-screen flex-col items-center justify-center border-0 bg-transparent shadow-none sm:h-auto sm:w-auto">
-        {isSuccess && successMessage && <Confetti />}
+        {isSuccess && <Confetti />}
         <div className="relative flex flex-col items-center rounded-3xl bg-background/80 p-12 text-center backdrop-blur-lg">
           {isLoading ? (
             <div className="flex flex-col items-center gap-4">
@@ -55,15 +54,11 @@ export function RedeemSuccessDialog({ gift, open, onOpenChange, redemptionState,
                     className="rounded-full border-8 border-background object-cover shadow-lg aspect-square"
                   />
                 </div>
-                <div className="mt-6 min-h-[100px]">
-                   { successMessage ? (
-                      <h2 className="font-headline text-4xl font-bold leading-tight tracking-tighter md:text-5xl">
-                          {successMessage}
-                      </h2>
-                    ) : (
-                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    )
-                   }
+                <div className="mt-6 min-h-[100px] flex flex-col items-center justify-center">
+                    <h2 className="font-headline text-4xl font-bold leading-tight tracking-tighter md:text-5xl">
+                        Success!
+                    </h2>
+                    <p className="mt-2 text-lg text-muted-foreground">Enjoy your new {gift.name}!</p>
                 </div>
               </>
             )

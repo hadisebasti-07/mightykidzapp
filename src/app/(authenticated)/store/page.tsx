@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import Link from 'next/link';
-import { generateGiftRedemptionMessage } from '@/ai/flows/generate-gift-redemption-message';
 import { useToast } from '@/hooks/use-toast';
 
 export default function StorePage() {
@@ -27,7 +26,6 @@ export default function StorePage() {
   const [isRedeemOpen, setRedeemOpen] = useState(false);
   
   const [redemptionState, setRedemptionState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [successMessage, setSuccessMessage] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,18 +42,12 @@ export default function StorePage() {
     if (!kid || !gift) return;
 
     setRedemptionState('loading');
-    setSuccessMessage('');
 
     try {
       // 1. Perform DB transaction
       await redeemGift(kid.id, gift.id);
 
-      // 2. After successful DB transaction, generate fun message
-      const result = await generateGiftRedemptionMessage({
-        kidName: kid.firstName,
-        giftName: gift.name,
-      });
-      setSuccessMessage(result.message);
+      // 2. After successful DB transaction, set success state
       setRedemptionState('success');
 
       // 3. Refresh data in the background
@@ -151,7 +143,6 @@ export default function StorePage() {
             open={isRedeemOpen}
             onOpenChange={setRedeemOpen}
             redemptionState={redemptionState}
-            successMessage={successMessage}
         />
       )}
     </>

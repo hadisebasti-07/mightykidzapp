@@ -11,7 +11,6 @@ import {
   QrCode,
   UserPlus,
   CameraOff,
-  Loader2,
   Coins,
 } from 'lucide-react';
 import { getKids, getRecentActivities, checkInKid } from '@/lib/data';
@@ -28,7 +27,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
-import { generatePersonalizedCheckinMessage } from '@/ai/flows/generate-personalized-checkin-message';
 
 export default function CheckInPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -41,8 +39,6 @@ export default function CheckInPage() {
 
   // State for the success overlay
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isLoadingMessage, setIsLoadingMessage] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(
@@ -115,33 +111,10 @@ export default function CheckInPage() {
     }
   }, [isScannerOpen, toast]);
 
-  // Effect to handle the success overlay AI message generation
+  // Effect to handle the success overlay auto-close
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (showSuccess && kidForSuccessOverlay) {
-      const getMessage = async () => {
-        setIsLoadingMessage(true);
-        try {
-          const isBirthday =
-            new Date().getMonth() + 1 === kidForSuccessOverlay.birthdayMonth &&
-            new Date().getDate() === new Date(kidForSuccessOverlay.dateOfBirth).getDate();
-          const result = await generatePersonalizedCheckinMessage({
-            kidName: kidForSuccessOverlay.firstName,
-            isBirthday: isBirthday,
-          });
-          setSuccessMessage(result);
-        } catch (error) {
-          console.error('Error generating message:', error);
-          // Fallback message
-          setSuccessMessage(
-            `Welcome, ${kidForSuccessOverlay.firstName}! We're so glad you're here!`
-          );
-        }
-        setIsLoadingMessage(false);
-      };
-      
-      getMessage();
-
+    if (showSuccess) {
       // Set a timer to automatically close the overlay
       timer = setTimeout(() => {
         setShowSuccess(false);
@@ -154,7 +127,7 @@ export default function CheckInPage() {
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [showSuccess]); // This effect now ONLY runs when `showSuccess` changes.
+  }, [showSuccess]);
 
   const handleSearch = () => {
     if (searchTerm.trim() === '') {
@@ -413,13 +386,9 @@ export default function CheckInPage() {
               </AvatarFallback>
             </Avatar>
             <div className="mt-6">
-              {isLoadingMessage ? (
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              ) : (
-                <h2 className="font-headline text-3xl font-bold leading-tight tracking-tighter md:text-4xl">
-                  {successMessage}
-                </h2>
-              )}
+              <h2 className="font-headline text-3xl font-bold leading-tight tracking-tighter md:text-4xl">
+                {`Welcome, ${kidForSuccessOverlay.firstName}!`}
+              </h2>
             </div>
             <div className="mt-4 flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-primary">
               <Coins className="size-5 text-primary" />
