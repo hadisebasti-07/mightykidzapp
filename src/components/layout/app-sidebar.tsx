@@ -29,9 +29,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/', label: 'Check-In', icon: ScanLine },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/kids', label: 'Kids', icon: Users },
-  { href: '/check-in', label: 'Check-In', icon: ScanLine },
   { href: '/store', label: 'Store', icon: Gift },
   { href: '/volunteers', label: 'Volunteers', icon: ClipboardList },
 ];
