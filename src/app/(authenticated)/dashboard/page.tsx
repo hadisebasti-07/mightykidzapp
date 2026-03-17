@@ -11,7 +11,6 @@ import {
 import { PageHeader } from '@/components/page-header';
 import {
   Users,
-  CalendarCheck,
   Cake,
   Gift,
   Activity,
@@ -33,7 +32,6 @@ const StatCardSkeleton = () => (
       </CardHeader>
       <CardContent>
           <Skeleton className="h-10 w-16 mb-2" />
-          <Skeleton className="h-4 w-28" />
       </CardContent>
     </Card>
 );
@@ -45,9 +43,14 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
-      const statsData = await getDashboardStats();
-      setStats(statsData);
-      setLoading(false);
+      try {
+        const statsData = await getDashboardStats();
+        setStats(statsData);
+      } catch (error) {
+        console.error("Dashboard failed to fetch stats:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchStats();
   }, []);
@@ -55,8 +58,8 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Sunday Live Dashboard"
-        description="A real-time overview of today's ministry activities."
+        title="Live Dashboard"
+        description="An overview of ministry activities."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {loading || !stats ? (
@@ -69,29 +72,29 @@ export default function DashboardPage() {
         ) : (
           <>
             <StatCard
-              title="Kids Checked In"
-              value={stats.kidsCheckedIn.toString()}
+              title="Total Kids"
+              value={stats.totalKids.toString()}
               icon={Users}
+              iconColor="text-blue-600"
+              iconBg="bg-blue-100"
+            />
+            <StatCard
+              title="Checked In Today"
+              value={stats.kidsCheckedIn.toString()}
+              icon={UserCheck}
               iconColor="text-primary-foreground"
               iconBg="bg-primary"
             />
             <StatCard
-              title="Volunteers on Duty"
-              value={stats.volunteersOnDuty.toString()}
-              icon={CalendarCheck}
-              iconColor="text-sky-600"
-              iconBg="bg-sky-100"
-            />
-            <StatCard
-              title="Today's Birthdays"
-              value={stats.todaysBirthdays.toString()}
+              title="This Month's Birthdays"
+              value={stats.thisMonthsBirthdays.toString()}
               icon={Cake}
               iconColor="text-pink-600"
               iconBg="bg-pink-100"
             />
             <StatCard
-              title="Gifts Redeemed Today"
-              value={stats.giftsRedeemed.toString()}
+              title="Total Gift Stock"
+              value={stats.totalGiftStock.toString()}
               icon={Gift}
               iconColor="text-amber-700"
               iconBg="bg-amber-100"

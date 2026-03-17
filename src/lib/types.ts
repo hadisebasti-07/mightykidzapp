@@ -49,10 +49,10 @@ export type RecentActivity = {
 };
 
 export type DashboardStats = {
+  totalKids: number;
   kidsCheckedIn: number;
-  volunteersOnDuty: number;
-  todaysBirthdays: number;
-  giftsRedeemed: number;
+  thisMonthsBirthdays: number;
+  totalGiftStock: number;
 };
 
 export const attendanceData = [

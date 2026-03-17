@@ -331,19 +331,17 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
 export const getDashboardStats = async (): Promise<DashboardStats> => {
     try {
         const kidsSnapshot = await getDocs(collection(db, "kids"));
-        const volunteersSnapshot = await getDocs(collection(db, "volunteers"));
+        const giftsSnapshot = await getDocs(collection(db, "gifts"));
         
         const today = new Date();
-        let todaysBirthdays = 0;
-        kidsSnapshot.docs.forEach(doc => {
-            const kid = doc.data();
-            const birthDate = new Date(kid.dateOfBirth);
-            if ((birthDate.getUTCMonth() + 1) === (today.getUTCMonth() + 1) && birthDate.getUTCDate() === today.getUTCDate()) {
-                todaysBirthdays++;
-            }
-        });
+        const currentMonth = today.getUTCMonth() + 1;
 
-        const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+        const birthdayQuery = query(collection(db, 'kids'), where('birthdayMonth', '==', currentMonth));
+        const monthlyBirthdaySnapshot = await getDocs(birthdayQuery);
+        const thisMonthsBirthdays = monthlyBirthdaySnapshot.size;
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
         
         const attendanceQuery = query(
             collectionGroup(db, 'attendances'), 
@@ -352,26 +350,29 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         const todayAttendanceSnapshot = await getDocs(attendanceQuery);
         const kidsCheckedIn = todayAttendanceSnapshot.size;
 
-        const redemptionQuery = query(
-            collectionGroup(db, 'redemptions'), 
-            where('timestamp', '>=', startOfToday)
-        );
-        const todayRedemptionsSnapshot = await getDocs(redemptionQuery);
-        const giftsRedeemed = todayRedemptionsSnapshot.size;
+        let totalGiftStock = 0;
+        giftsSnapshot.forEach(doc => {
+            const gift = doc.data();
+            if (gift.active) {
+                totalGiftStock += gift.stock || 0;
+            }
+        });
+
+        const totalKids = kidsSnapshot.size;
 
         return {
-            kidsCheckedIn: kidsCheckedIn,
-            volunteersOnDuty: volunteersSnapshot.size,
-            todaysBirthdays: todaysBirthdays,
-            giftsRedeemed: giftsRedeemed,
+            totalKids,
+            kidsCheckedIn,
+            thisMonthsBirthdays,
+            totalGiftStock,
         };
     } catch (error) {
         console.error("Error fetching dashboard stats:", error);
         return {
+            totalKids: 0,
             kidsCheckedIn: 0,
-            volunteersOnDuty: 0,
-            todaysBirthdays: 0,
-            giftsRedeemed: 0,
+            thisMonthsBirthdays: 0,
+            totalGiftStock: 0,
         };
     }
 };
