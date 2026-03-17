@@ -388,28 +388,23 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
 };
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
-  console.log('[Stats] Fetching dashboard stats...');
   try {
     const kidsSnapshot = await getDocs(collection(db, 'kids'));
     const giftsSnapshot = await getDocs(collection(db, 'gifts'));
 
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
-    console.log(`[Stats] Current month (1-12): ${currentMonth}`);
 
     const birthdayQuery = query(collection(db, 'kids'), where('birthdayMonth', '==', currentMonth));
     const monthlyBirthdaySnapshot = await getDocs(birthdayQuery);
     const thisMonthsBirthdays = monthlyBirthdaySnapshot.size;
-    console.log(`[Stats] Found ${thisMonthsBirthdays} birthdays this month.`);
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    console.log(`[Stats] Querying for check-ins since: ${startOfToday.toISOString()}`);
 
     const attendanceQuery = query(collectionGroup(db, 'attendances'), where('timestamp', '>=', startOfToday));
     const todayAttendanceSnapshot = await getDocs(attendanceQuery);
     const kidsCheckedIn = todayAttendanceSnapshot.size;
-    console.log(`[Stats] Found ${kidsCheckedIn} check-ins today.`);
 
     let totalGiftStock = 0;
     giftsSnapshot.forEach((doc) => {
@@ -418,10 +413,8 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         totalGiftStock += gift.stock || 0;
       }
     });
-    console.log(`[Stats] Calculated total gift stock: ${totalGiftStock}`);
 
     const totalKids = kidsSnapshot.size;
-    console.log(`[Stats] Found total kids: ${totalKids}`);
     
     const stats: DashboardStats = {
       totalKids,
@@ -429,9 +422,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       thisMonthsBirthdays,
       totalGiftStock,
     };
-
-    console.log('[Stats] Final stats object:', stats);
-
     return stats;
   } catch (error) {
     console.error('[Stats] Error fetching dashboard stats:', error);
@@ -450,7 +440,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       thisMonthsBirthdays: 0,
       totalGiftStock: 0,
     };
-    console.log('[Stats] Returning empty stats due to error:', emptyStats);
     return emptyStats;
   }
 };

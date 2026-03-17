@@ -129,6 +129,18 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // Collection Group Queries
+    // -------------------------------------------------------------------------
+    // These rules are required to allow admins to query across all kids'
+    // subcollections for dashboard stats and recent activity feeds.
+    match /{path=**}/attendances/{docId} {
+      allow list: if isAdmin();
+    }
+    match /{path=**}/redemptions/{docId} {
+      allow list: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
     // Core Data Collections
     // -------------------------------------------------------------------------
 
