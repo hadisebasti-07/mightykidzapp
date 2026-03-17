@@ -52,7 +52,7 @@ export default function HomePage() {
       setAllKids(kidsData);
 
       // Populate quick check-in
-      const recentActivities = getRecentActivities().filter(
+      const recentActivities = (await getRecentActivities()).filter(
         (a) => a.type === 'check-in'
       );
       const recentKidNames = [...new Set(recentActivities.map((a) => a.kidName))];

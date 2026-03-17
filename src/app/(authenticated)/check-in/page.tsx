@@ -21,6 +21,29 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  Dialog![CDATA['use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { PageHeader } from '@/components/page-header';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Search,
+  UserCheck,
+  X,
+  QrCode,
+  UserPlus,
+  CameraOff,
+  Coins,
+} from 'lucide-react';
+import { getKids, getRecentActivities, checkInKid } from '@/lib/data';
+import { Kid } from '@/lib/types';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
@@ -52,7 +75,7 @@ export default function CheckInPage() {
       setAllKids(kidsData);
 
       // Populate quick check-in
-      const recentActivities = getRecentActivities().filter(
+      const recentActivities = (await getRecentActivities()).filter(
         (a) => a.type === 'check-in'
       );
       const recentKidNames = [...new Set(recentActivities.map((a) => a.kidName))];
