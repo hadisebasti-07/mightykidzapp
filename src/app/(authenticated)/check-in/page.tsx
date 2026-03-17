@@ -300,29 +300,28 @@ export default function HomePage() {
             {searchResults.map((kid) => (
               <div
                 key={kid.id}
-                className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm"
+                className="flex items-center gap-2 rounded-xl border bg-card p-2 shadow-sm sm:gap-4 sm:p-4"
               >
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-12 w-12 shrink-0 sm:h-16 sm:w-16">
                   <AvatarImage src={kid.photoUrl} alt={kid.firstName} />
-                  <AvatarFallback>
+                  <AvatarFallback className="sm:text-2xl">
                     {kid.firstName.charAt(0)}
                     {kid.lastName.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-xl font-bold">
+                  <p className="truncate font-bold sm:text-xl">
                     {kid.firstName} {kid.lastName}
                   </p>
-                  <p className="truncate text-muted-foreground">
+                  <p className="truncate text-sm text-muted-foreground">
                     Parent: {kid.parentName}
                   </p>
                 </div>
                 <Button
-                  size="lg"
-                  className="h-12 flex-shrink-0 px-6 text-base sm:h-14"
+                  className="h-10 flex-shrink-0 px-3 text-sm sm:h-12 sm:px-6 sm:text-base"
                   onClick={() => handleCheckIn(kid)}
                 >
-                  <UserCheck className="mr-2 h-5 w-5" />
+                  <UserCheck className="mr-1 h-4 w-4 sm:mr-2" />
                   Check In
                 </Button>
               </div>
@@ -341,29 +340,28 @@ export default function HomePage() {
                   quickCheckInKids.map((kid) => (
                     <div
                       key={kid.id}
-                      className="flex items-center gap-4 rounded-xl border bg-background p-4 shadow-sm"
+                      className="flex items-center gap-2 rounded-xl border bg-background p-2 shadow-sm sm:gap-4 sm:p-4"
                     >
-                      <Avatar className="h-16 w-16">
+                      <Avatar className="h-12 w-12 shrink-0 sm:h-16 sm:w-16">
                         <AvatarImage src={kid.photoUrl} alt={kid.firstName} />
-                        <AvatarFallback>
+                        <AvatarFallback className="sm:text-2xl">
                           {kid.firstName.charAt(0)}
                           {kid.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 overflow-hidden">
-                        <p className="truncate text-xl font-bold">
+                        <p className="truncate font-bold sm:text-xl">
                           {kid.firstName} {kid.lastName}
                         </p>
-                        <p className="truncate text-muted-foreground">
+                        <p className="truncate text-sm text-muted-foreground">
                           Parent: {kid.parentName}
                         </p>
                       </div>
                       <Button
-                        size="lg"
-                        className="h-12 flex-shrink-0 px-6 text-base sm:h-14"
+                        className="h-10 flex-shrink-0 px-3 text-sm sm:h-12 sm:px-6 sm:text-base"
                         onClick={() => handleCheckIn(kid)}
                       >
-                        <UserCheck className="mr-2 h-5 w-5" />
+                        <UserCheck className="mr-1 h-4 w-4 sm:mr-2" />
                         Check In
                       </Button>
                     </div>
