@@ -23,7 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
 import { useEffect, useState } from 'react';
-import { signOut } from '@/lib/firebase/auth';
+import { signOut, auth } from '@/lib/firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -48,7 +48,7 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await signOut(auth);
       toast({
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
