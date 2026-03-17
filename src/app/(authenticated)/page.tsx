@@ -66,13 +66,10 @@ export default function HomePage() {
     fetchKidsAndActivities();
   }, []);
 
-  const handleCheckIn = useCallback(async (kid: Kid) => {
-    // Show success overlay optimistically with the kid's info and updated coin balance
+  const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
     setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
     
-    if (isScannerOpen) {
-      setScannerOpen(false);
-      // Brief timeout to allow scanner dialog to close
+    if (fromScanner) {
       setTimeout(() => setShowSuccess(true), 300);
     } else {
       setShowSuccess(true);
@@ -102,7 +99,7 @@ export default function HomePage() {
       setShowSuccess(false);
       setKidForSuccessOverlay(null);
     }
-  }, [isScannerOpen, toast]);
+  }, [toast]);
 
   useEffect(() => {
     if (!isScannerOpen) {
@@ -115,36 +112,34 @@ export default function HomePage() {
     const startScanner = async () => {
       try {
         setHasCameraPermission(true); // Optimistic
-        const videoStream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: 'environment',
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
         });
-        stream = videoStream;
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           
           codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
-            if (result) {
-              if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-              }
+            if (result && isScannerOpen) {
+              setScannerOpen(false); 
+
               const scannedId = result.getText();
               const kid = allKids.find((k) => k.id === scannedId);
+              
               if (kid) {
-                handleCheckIn(kid);
+                handleCheckIn(kid, true);
               } else {
                 toast({
                   variant: 'destructive',
                   title: 'Kid Not Found',
                   description: `No kid record found for ID: ${scannedId}`,
                 });
-                setScannerOpen(false);
               }
-            } else if (err && err.name !== 'NotFoundException') {
+            } else if (err && err.name !== 'NotFoundException' && isScannerOpen) {
               console.error('Barcode scanning error:', err);
             }
           });
@@ -157,14 +152,23 @@ export default function HomePage() {
           title: 'Camera Access Denied',
           description: 'Please enable camera permissions in your browser settings to scan barcodes.',
         });
+        setScannerOpen(false);
       }
     };
 
     startScanner();
 
     return () => {
+      try {
+        codeReader.reset();
+      } catch (e) {
+        console.error("Failed to reset code reader", e);
+      }
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
       }
     };
   }, [isScannerOpen, allKids, handleCheckIn, toast]);
