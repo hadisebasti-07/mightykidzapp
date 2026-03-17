@@ -54,17 +54,6 @@ export type DashboardStats = {
   totalGiftStock: number;
 };
 
-export const attendanceData = [
-  { date: 'Week 1', attendance: 250 },
-  { date: 'Week 2', attendance: 260 },
-  { date: 'Week 3', attendance: 240 },
-  { date: 'Week 4', attendance: 280 },
-  { date: 'Week 5', attendance: 290 },
-  { date: 'Week 6', attendance: 270 },
-  { date: 'Week 7', attendance: 300 },
-  { date: 'Week 8', attendance: 310 },
-];
-
 export const chartConfig = {
   attendance: {
     label: 'Attendance',

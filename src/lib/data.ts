@@ -17,6 +17,7 @@ import {
   collectionGroup,
   limit,
   where,
+  Timestamp,
 } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
@@ -456,5 +457,66 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       totalGiftStock: 0,
     };
     return emptyStats;
+  }
+};
+
+export const getAttendanceTrend = async (): Promise<{ date: string; attendance: number }[]> => {
+  try {
+    const EIGHT_WEEKS_IN_MS = 8 * 7 * 24 * 60 * 60 * 1000;
+    const eightWeeksAgo = new Date(Date.now() - EIGHT_WEEKS_IN_MS);
+
+    const q = query(
+      collection(db, 'activities'),
+      where('type', '==', 'check-in'),
+      where('timestamp', '>=', eightWeeksAgo)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    // Initialize an array of 8 weeks, each with 0 attendance
+    const weeklyCounts = Array.from({ length: 8 }, () => 0);
+    const today = new Date();
+
+    querySnapshot.forEach((doc) => {
+      const activity = doc.data();
+      const activityDate = (activity.timestamp as Timestamp).toDate();
+
+      const diffTime = today.getTime() - activityDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // weekIndex 0 is this week (days 0-6), 1 is last week (days 7-13), etc.
+      const weekIndex = Math.floor(diffDays / 7);
+
+      if (weekIndex < 8) {
+        weeklyCounts[weekIndex]++;
+      }
+    });
+
+    const trend = weeklyCounts.map((count, i) => {
+      let weekLabel = `${i} wks ago`;
+      if (i === 0) weekLabel = 'This Week';
+      if (i === 1) weekLabel = 'Last Week';
+      return {
+        date: weekLabel,
+        attendance: count,
+      };
+    }).reverse(); // Reverse so that "This Week" is at the end (right side of chart)
+    
+    return trend;
+
+  } catch (error: any) {
+    console.error("[Data] Error fetching attendance trend:", error);
+    if (error.code === 'permission-denied' || error.code === 'failed-precondition') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'activities collection (for attendance trend)',
+        operation: 'list',
+        requestResourceData: 'This query may require a composite index. Check the console for a link to create it.'
+      }));
+    }
+    // Return a default structure on error to prevent chart from breaking
+    return Array.from({ length: 8 }, (_, i) => ({
+      date: `Week ${8-i}`,
+      attendance: 0,
+    }));
   }
 };
