@@ -14,6 +14,8 @@ export type Kid = {
   totalAttendance: number;
   birthdayMonth: number;
   createdAt: string;
+  className?: string;
+  houseColor?: string;
 };
 
 export type Gift = {

@@ -9,6 +9,8 @@ export const kidFormSchema = z.object({
     required_error: "A date of birth is required.",
   }),
   gender: z.enum(['Male', 'Female']),
+  className: z.string().optional(),
+  houseColor: z.string().optional(),
   parentName: z.string().min(2, { message: 'Parent name is required.' }),
   parentPhone: z.string().min(10, { message: 'Phone number must be at least 10 digits.' }),
   allergies: z.string().optional(),

@@ -60,6 +60,8 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
       parentPhone: '',
       allergies: '',
       medicalNotes: '',
+      className: '',
+      houseColor: '',
   };
 
   const form = useForm<KidFormValues>({
@@ -288,6 +290,53 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
                     <SelectContent>
                       <SelectItem value="Male">Male</SelectItem>
                       <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        </div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="className"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Class</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Assign a class" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Nursery (0-2yr)">Nursery (0-2yr)</SelectItem>
+                      <SelectItem value="Preschool (3-4yr)">Preschool (3-4yr)</SelectItem>
+                      <SelectItem value="Elementary (5-10yr)">Elementary (5-10yr)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="houseColor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>House Color</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Assign a house color" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Red">Red</SelectItem>
+                      <SelectItem value="Green">Green</SelectItem>
+                      <SelectItem value="Blue">Blue</SelectItem>
+                      <SelectItem value="Yellow">Yellow</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
