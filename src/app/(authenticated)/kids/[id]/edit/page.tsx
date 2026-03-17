@@ -15,12 +15,11 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 
-export default function EditKidPage({ params }: { params: { id: string } }) {
+export default function EditKidPage({ params: { id } }: { params: { id: string } }) {
   const router = useRouter();
   const [kid, setKid] = useState<Kid | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { id } = params;
 
   useEffect(() => {
     const fetchKid = async () => {

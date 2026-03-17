@@ -8,11 +8,10 @@ import { Gift } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function EditGiftPage({ params }: { params: { id: string } }) {
+export default function EditGiftPage({ params: { id } }: { params: { id: string } }) {
   const [gift, setGift] = useState<Gift | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { id } = params;
 
   useEffect(() => {
     if (!id) return;
