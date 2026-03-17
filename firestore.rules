@@ -8,46 +8,27 @@ rules_version = '2';
  * This ruleset is designed for the MightyKidz application.
  *
  * @core_philosophy
- * The security model is strictly 'admin-only'. All read and write operations
- * across the entire database are restricted to authenticated users who are
- * designated as administrators. This provides a highly secure environment
- * for managing sensitive information about children and volunteers.
+ * The security model uses a custom authentication claim (`admin: true`) to grant
+ * administrator privileges. This is a secure and performant method that works
+ * correctly with all query types, including collection group queries. All
+ * read/write operations are restricted to authenticated users who have this
+ * admin claim.
  *
  * @data_structure
- * Data is organized into several top-level collections:
- * - `/admins`: A special collection used for Database Access Control (DBAC).
- * - `/kids`: Contains profiles for each child.
- * - `/gifts`: A catalog of reward items.
- * - `/volunteers`: Profiles for ministry volunteers.
- * - `/volunteerSchedules`: Manages volunteer assignments.
- * Child-specific data (attendance, transactions, redemptions) is nested in
- * subcollections under `/kids/{kidId}` to maintain clear ownership and
- * facilitate targeted queries.
+ * Data is organized into several top-level collections: `/kids`, `/gifts`,
+ * `/volunteers`, etc. The `/admins` collection is no longer used for live
+ * authorization checks but can be kept for auditing or bootstrapping purposes.
  *
  * @key_security_decisions
- * - Admin-Only Access: The primary security principle is that only users with
- *   a corresponding document in the `/admins` collection can access any data.
- * - DBAC via Collection: Administrator status is determined by the existence
- *   of a document at `/admins/{userId}`. This is a simple, performant, and
- *   easily auditable method for managing roles without custom claims.
- * - Client-Side Admin Management Disabled: Rules explicitly prevent any
- *   client from creating, modifying, or deleting documents in the `/admins`
- *   collection to prevent users from promoting themselves to admin status.
- *   Admin roles must be managed directly in the Firebase Console or via a
- *   trusted server-side process.
- * - Relational Integrity: While data shapes are flexible for rapid
- *   prototyping, rules strictly enforce the integrity of relational keys
- *   (e.g., `kidId` in subcollections) to prevent data from being orphaned or
- *   mis-associated.
+ * - Admin-Only Access via Custom Claims: The primary security principle is that
+ *   only users with a custom claim of `admin: true` on their authentication
+ *   token can access data. This avoids costly database reads in security rules
+ *   and is required for collection group queries to be properly secured.
+ * - Client-Side Admin Management Disabled: Rules explicitly prevent clients
+ *   from creating, modifying, or deleting documents in the `/admins`
+ *   collection. Admin status is managed out-of-band using a trusted
+ *   server-side process (e.g., a Cloud Function with the Firebase Admin SDK).
  *
- * @denormalization_for_authorization
- * The database schema is designed with future expansion in mind. Although the
- * current rules are admin-only, entities like `KidProfile` are intended to
- * hold a `parentUids` array. This field would be denormalized (copied) into
- * all child-specific subcollection documents (e.g., `attendances`). This
- * strategy avoids costly `get()` calls in security rules, enabling future
- * parent-role rules to securely and efficiently authorize access by checking
- * for their UID directly within the document being accessed.
  */
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -64,12 +45,12 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the user is an administrator.
-     * Admin status is granted by the existence of a document in the /admins
-     * collection with an ID matching the user's UID.
+     * Checks if the user is an administrator by looking for a custom claim.
+     * This is the required method for securely authorizing collection group queries.
+     * The `exists()` or `get()` methods are not permitted in collection group rules.
      */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return request.auth.token.admin == true;
     }
 
     /**
@@ -112,19 +93,13 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     /**
-     * @description Manages admin role markers. Writes are disabled from the client
-     * to prevent self-promotion. Admin roles must be managed via the Firebase
-     * Console or a trusted backend. Admins can read the list of other admins.
+     * @description Manages admin role markers. This collection is NOT used for
+     * live auth checks anymore but can be useful for auditing. Writes are
+     * disabled from the client to prevent self-promotion.
      * @path /admins/{adminUid}
-     * @allow (get) An admin with UID 'admin123' reading the doc for 'admin456'.
-     * @deny (create) Any user attempting to create a document for themselves.
-     * @principle Secures the role-management system by disabling all client-side writes.
      */
     match /admins/{adminUid} {
-      // Any signed-in user can check for the existence of an admin doc.
-      // This is required for the `isAdmin()` function to work without circular dependencies.
-      allow get: if isSignedIn();
-      // Only existing admins can see the full list of other admins.
+      allow get: if isAdmin();
       allow list: if isAdmin();
       allow create: if false;
       allow update: if false;
@@ -148,12 +123,8 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     /**
-     * @description Manages the profiles of children in the ministry. Only admins
-     * can create, read, update, or delete kid profiles.
+     * @description Manages the profiles of children in the ministry.
      * @path /kids/{kidId}
-     * @allow (create) An admin creating a new kid profile.
-     * @deny (get) A non-admin user trying to read a kid's profile.
-     * @principle Restricts all data access to verified administrators.
      */
     match /kids/{kidId} {
       allow get: if isAdmin();
@@ -163,13 +134,8 @@ service cloud.firestore {
       allow delete: if isAdmin() && isExistingDoc();
 
       /**
-       * @description Manages attendance records for a specific child. Access is
-       * restricted to admins. Enforces that the record's `kidId` matches the
-       * parent document's path.
+       * @description Manages attendance records for a specific child.
        * @path /kids/{kidId}/attendances/{attendanceId}
-       * @allow (create) An admin creating an attendance record for the child specified in the path.
-       * @deny (create) An admin creating a record where the internal `kidId` does not match the path `kidId`.
-       * @principle Enforces data integrity by linking subcollection documents to their parent path.
        */
       match /attendances/{attendanceId} {
         allow get: if isAdmin();
@@ -180,12 +146,8 @@ service cloud.firestore {
       }
 
       /**
-       * @description Manages coin transaction records for a specific child. Access
-       * is restricted to admins. Enforces `kidId` consistency.
+       * @description Manages coin transaction records for a specific child.
        * @path /kids/{kidId}/coinTransactions/{transactionId}
-       * @allow (list) An admin listing all coin transactions for a specific child.
-       * @deny (update) A non-admin user attempting to modify a transaction.
-       * @principle Enforces data integrity by linking subcollection documents to their parent path.
        */
       match /coinTransactions/{transactionId} {
         allow get: if isAdmin();
@@ -196,12 +158,8 @@ service cloud.firestore {
       }
 
       /**
-       * @description Manages gift redemption records for a specific child. Access is
-       * restricted to admins. Enforces `kidId` consistency.
+       * @description Manages gift redemption records for a specific child.
        * @path /kids/{kidId}/redemptions/{redemptionId}
-       * @allow (delete) An admin deleting a redemption record for a specific child.
-       * @deny (get) A non-admin user trying to read a redemption record.
-       * @principle Enforces data integrity by linking subcollection documents to their parent path.
        */
       match /redemptions/{redemptionId} {
         allow get: if isAdmin();
@@ -214,11 +172,7 @@ service cloud.firestore {
 
     /**
      * @description Manages the catalog of gifts available in the reward store.
-     * Only admins can manage the gift catalog.
      * @path /gifts/{giftId}
-     * @allow (update) An admin updating the stock or price of a gift.
-     * @deny (create) A non-admin user attempting to add a new gift.
-     * @principle Restricts all data access to verified administrators.
      */
     match /gifts/{giftId} {
       allow get: if isAdmin();
@@ -229,12 +183,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages the profiles of ministry volunteers. Only admins can
-     * create, read, update, or delete volunteer profiles.
+     * @description Manages the profiles of ministry volunteers.
      * @path /volunteers/{volunteerId}
-     * @allow (list) An admin listing all available volunteers.
-     * @deny (get) A non-admin user trying to read a volunteer's profile.
-     * @principle Restricts all data access to verified administrators.
      */
     match /volunteers/{volunteerId} {
       allow get: if isAdmin();
@@ -245,12 +195,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages the schedules for volunteers. Only admins can
-     * create, read, update, or delete schedules.
+     * @description Manages the schedules for volunteers.
      * @path /volunteerSchedules/{scheduleId}
-     * @allow (create) An admin creating a new schedule for an upcoming service.
-     * @deny (update) A non-admin user attempting to modify a volunteer schedule.
-     * @principle Restricts all data access to verified administrators.
      */
     match /volunteerSchedules/{scheduleId} {
       allow get: if isAdmin();
