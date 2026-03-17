@@ -121,6 +121,7 @@ export default function HomePage() {
     ];
     hints.set(9, formats); // POSSIBLE_FORMATS
     hints.set(3, true);   // TRY_HARDER
+    hints.set(1, true);   // ALSO_INVERTED
     const codeReader = new BrowserMultiFormatReader(hints);
     let stream: MediaStream | null = null;
     
