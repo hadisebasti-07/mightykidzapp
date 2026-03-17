@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
+import { FirebaseErrorListener } from '@/components/firebase/FirebaseErrorListener';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -25,7 +26,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={cn('font-body antialiased', poppins.variable)}>
         <AuthProvider>
-          {children}
+          <FirebaseErrorListener>
+            {children}
+          </FirebaseErrorListener>
           <Toaster />
         </AuthProvider>
       </body>
