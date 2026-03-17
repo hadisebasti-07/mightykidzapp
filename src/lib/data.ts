@@ -29,7 +29,7 @@ export const addKid = async (data: KidFormValues) => {
     photoUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
     coinsBalance: 0,
     totalAttendance: 0,
-    birthdayMonth: new Date(birthDate).getUTCMonth() + 1,
+    birthdayMonth: parseInt(birthDate.split('-')[1], 10),
     createdAt: new Date().toISOString(),
   };
 
@@ -68,7 +68,7 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
   const updateData: any = { ...data };
   if (data.dateOfBirth) {
     updateData.dateOfBirth = data.dateOfBirth;
-    updateData.birthdayMonth = new Date(data.dateOfBirth).getUTCMonth() + 1;
+    updateData.birthdayMonth = parseInt(data.dateOfBirth.split('-')[1], 10);
   }
 
   if (data.photoDataUrl) {
