@@ -175,13 +175,18 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
   }
   delete updateData.photoDataUrl;
 
-  updateDoc(kidRef, updateData).catch((serverError) => {
+  // Sanitize object to remove any keys with undefined values before sending to Firestore
+  const sanitizedData = Object.fromEntries(
+    Object.entries(updateData).filter(([_, v]) => v !== undefined)
+  );
+
+  updateDoc(kidRef, sanitizedData).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: kidRef.path,
         operation: 'update',
-        requestResourceData: updateData,
+        requestResourceData: sanitizedData,
       })
     );
   });
