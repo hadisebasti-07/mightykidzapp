@@ -98,7 +98,7 @@ export function ImportKidsDialog() {
             The `id` is optional and can be left blank to auto-generate.
             <br />
             <strong>Required format:</strong>
-            <code className="my-2 block rounded bg-muted p-2 text-xs text-foreground break-words whitespace-pre-wrap">
+            <code className="my-2 block rounded bg-muted p-2 text-xs text-foreground break-all whitespace-pre-wrap">
               {csvHeaders}
             </code>
             - `dateOfBirth`: YYYY-MM-DD
