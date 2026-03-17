@@ -112,14 +112,15 @@ export default function HomePage() {
     let isMounted = true;
     
     const hints = new Map();
-    // Using the numeric value for DecodeHintType.POSSIBLE_FORMATS to avoid import issue
-    hints.set(9, [
+    const formats = [
       BarcodeFormat.QR_CODE,
       BarcodeFormat.DATA_MATRIX,
       BarcodeFormat.CODE_128,
       BarcodeFormat.EAN_13,
       BarcodeFormat.UPC_A,
-    ]);
+    ];
+    hints.set(9, formats); // POSSIBLE_FORMATS
+    hints.set(3, true);   // TRY_HARDER
     const codeReader = new BrowserMultiFormatReader(hints);
     let stream: MediaStream | null = null;
     
@@ -132,6 +133,7 @@ export default function HomePage() {
             facingMode: 'environment',
             width: { ideal: 1280 },
             height: { ideal: 720 },
+            focusMode: 'continuous',
           },
         });
 
