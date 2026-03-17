@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -9,7 +11,7 @@ export function Logo({ className }: { className?: string }) {
         alt="MightyKidz Logo"
         width={135}
         height={113}
-        className="h-10 w-auto"
+        className="h-12 w-auto"
         priority
       />
     </div>

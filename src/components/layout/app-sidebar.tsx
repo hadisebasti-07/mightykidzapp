@@ -66,8 +66,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="pb-2">
+      <SidebarHeader className="flex flex-col items-center gap-2 pb-4 pt-3 text-center">
         <Logo />
+        <div className="flex flex-col">
+            <h2 className="text-xl font-bold tracking-tighter text-sidebar-foreground">
+                MightyKidz
+            </h2>
+            <p className="text-xs text-sidebar-foreground/50">
+                Ministry Management
+            </p>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
