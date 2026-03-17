@@ -19,6 +19,7 @@ import {
   where,
   Timestamp,
 } from 'firebase/firestore';
+import { format } from 'date-fns';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { type KidFormValues, type GiftFormValues } from './schemas';
@@ -26,14 +27,16 @@ import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
 
 export const addKid = async (data: KidFormValues) => {
-  const birthDate = data.dateOfBirth;
+  const birthDate = data.dateOfBirth; // This is a Date object
+  const dateString = format(birthDate, 'yyyy-MM-dd'); // Use date-fns to avoid timezone issues
+  
   const newKidRef = doc(collection(db, 'kids'));
   const newKidData = {
     id: newKidRef.id,
     firstName: data.firstName,
     lastName: data.lastName,
     nickname: data.nickname || '',
-    dateOfBirth: birthDate,
+    dateOfBirth: dateString,
     gender: data.gender,
     parentName: data.parentName,
     parentPhone: data.parentPhone,
@@ -42,7 +45,7 @@ export const addKid = async (data: KidFormValues) => {
     photoUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
     coinsBalance: 0,
     totalAttendance: 0,
-    birthdayMonth: parseInt(birthDate.split('-')[1], 10),
+    birthdayMonth: parseInt(dateString.split('-')[1], 10),
     createdAt: new Date().toISOString(),
   };
 
@@ -79,10 +82,13 @@ export const getKidById = async (kidId: string): Promise<Kid | null> => {
 
 export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => {
   const kidRef = doc(db, 'kids', kidId);
+  
   const updateData: any = { ...data };
+
   if (data.dateOfBirth) {
-    updateData.dateOfBirth = data.dateOfBirth;
-    updateData.birthdayMonth = parseInt(data.dateOfBirth.split('-')[1], 10);
+    const dateString = format(data.dateOfBirth, 'yyyy-MM-dd');
+    updateData.dateOfBirth = dateString;
+    updateData.birthdayMonth = parseInt(dateString.split('-')[1], 10);
   }
 
   if (data.photoDataUrl) {

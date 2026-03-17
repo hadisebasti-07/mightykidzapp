@@ -3,7 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { Camera, UserCircle2, CameraOff } from 'lucide-react';
+import { format } from 'date-fns';
+import { CalendarIcon, Camera, UserCircle2, CameraOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { addKid, updateKid } from '@/lib/data';
@@ -33,6 +36,12 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Kid } from '@/lib/types';
 import { kidFormSchema, type KidFormValues } from '@/lib/schemas';
 
+// Helper to parse YYYY-MM-DD string into a Date, ignoring timezones.
+const parseDateString = (dateString: string): Date => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+}
+
 export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -40,12 +49,12 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
   const defaultValues: Partial<KidFormValues> = kidToEdit ? {
       ...kidToEdit,
       photoDataUrl: kidToEdit.photoUrl,
+      dateOfBirth: parseDateString(kidToEdit.dateOfBirth),
   } : {
       photoDataUrl: '',
       firstName: '',
       lastName: '',
       nickname: '',
-      dateOfBirth: '',
       gender: 'Male',
       parentName: '',
       parentPhone: '',
@@ -224,14 +233,42 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
               control={form.control}
               name="dateOfBirth"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Date of Birth</FormLabel>
-                  <FormControl>
-                    <Input placeholder="YYYY-MM-DD" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Please use YYYY-MM-DD format.
-                  </FormDescription>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      captionLayout="dropdown-buttons"
+                      fromYear={new Date().getFullYear() - 18}
+                      toYear={new Date().getFullYear()}
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

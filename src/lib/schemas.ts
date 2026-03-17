@@ -5,14 +5,9 @@ export const kidFormSchema = z.object({
   firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
   lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
   nickname: z.string().optional(),
-  dateOfBirth: z.string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format.' })
-    .refine((dateString) => {
-        const date = new Date(dateString);
-        const [year, month, day] = dateString.split('-').map(Number);
-        const isValidDate = date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-        return isValidDate && date.getFullYear() > 1900 && date <= new Date();
-    }, 'Please enter a valid date.'),
+  dateOfBirth: z.date({
+    required_error: "A date of birth is required.",
+  }),
   gender: z.enum(['Male', 'Female']),
   parentName: z.string().min(2, { message: 'Parent name is required.' }),
   parentPhone: z.string().min(10, { message: 'Phone number must be at least 10 digits.' }),
