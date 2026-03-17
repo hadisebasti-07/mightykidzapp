@@ -7,21 +7,24 @@ import { getGiftById } from '@/lib/data';
 import { Gift } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useParams } from 'next/navigation';
 
-export default function EditGiftPage({ params }: { params: { id: string } }) {
+export default function EditGiftPage() {
+  const params = useParams();
+  const id = params.id as string;
   const [gift, setGift] = useState<Gift | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!params.id) return;
+    if (!id) return;
     const fetchGift = async () => {
       try {
-        const giftData = await getGiftById(params.id);
+        const giftData = await getGiftById(id);
         if (giftData) {
           setGift(giftData);
         } else {
-          setError(`Gift with id ${params.id} not found.`);
+          setError(`Gift with id ${id} not found.`);
         }
       } catch (fetchError) {
         console.error("Failed to fetch gift:", fetchError);
@@ -31,7 +34,7 @@ export default function EditGiftPage({ params }: { params: { id: string } }) {
       }
     };
     fetchGift();
-  }, [params.id]);
+  }, [id]);
 
   return (
     <div className="flex flex-col gap-8">

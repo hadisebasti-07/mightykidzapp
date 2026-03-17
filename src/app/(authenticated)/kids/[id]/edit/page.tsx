@@ -13,23 +13,27 @@ import { getKidById } from '@/lib/data';
 import { Kid } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function EditKidPage({ params }: { params: { id: string } }) {
+export default function EditKidPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+
   const [kid, setKid] = useState<Kid | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!id) return;
     const fetchKid = async () => {
       try {
-        const kidData = await getKidById(params.id);
+        const kidData = await getKidById(id);
         if (kidData) {
           setKid(kidData);
         } else {
-          setError(`Kid with id ${params.id} not found.`);
-          console.error(`Kid with id ${params.id} not found.`);
+          setError(`Kid with id ${id} not found.`);
+          console.error(`Kid with id ${id} not found.`);
         }
       } catch (fetchError) {
         console.error("Failed to fetch kid:", fetchError);
@@ -39,7 +43,7 @@ export default function EditKidPage({ params }: { params: { id: string } }) {
       }
     };
     fetchKid();
-  }, [params.id]);
+  }, [id]);
 
   return (
     <div className="flex flex-col gap-8">
