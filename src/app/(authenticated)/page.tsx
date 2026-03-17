@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/browser';
 
 export default function HomePage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -41,9 +42,7 @@ export default function HomePage() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(
-    null
-  );
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,49 +66,105 @@ export default function HomePage() {
     fetchKidsAndActivities();
   }, []);
 
-  useEffect(() => {
+  const handleCheckIn = useCallback(async (kid: Kid) => {
+    // Show success overlay optimistically with the kid's info and updated coin balance
+    setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
+    
     if (isScannerOpen) {
-      const enableCamera = async () => {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: 'environment' },
-            });
-            setHasCameraPermission(true);
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-            }
-          } catch (error) {
-            console.error('Error accessing camera:', error);
-            setHasCameraPermission(false);
-            toast({
-              variant: 'destructive',
-              title: 'Camera Access Denied',
-              description:
-                'Please enable camera permissions in your browser settings to scan barcodes.',
+      setScannerOpen(false);
+      // Brief timeout to allow scanner dialog to close
+      setTimeout(() => setShowSuccess(true), 300);
+    } else {
+      setShowSuccess(true);
+    }
+
+    try {
+      // Perform the database update in the background
+      await checkInKid(kid.id);
+
+      // On success, refresh all kid data to ensure UI is consistent
+      const refreshedKids = await getKids();
+      setAllKids(refreshedKids);
+
+      // Update the lists that are currently displayed
+      setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
+      setQuickCheckInKids(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
+
+    } catch (e) {
+      console.error("Check-in failed:", e);
+      toast({
+        variant: "destructive",
+        title: "Check-in Failed",
+        description: "Could not sync with database. Please try again.",
+      });
+      
+      // On failure, immediately hide the success overlay
+      setShowSuccess(false);
+      setKidForSuccessOverlay(null);
+    }
+  }, [isScannerOpen, toast]);
+
+  useEffect(() => {
+    const codeReader = new BrowserMultiFormatReader();
+    let isMounted = true;
+
+    if (isScannerOpen && isMounted) {
+      setHasCameraPermission(true); // Be optimistic
+      
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+          if (videoRef.current && isMounted) {
+            videoRef.current.srcObject = stream;
+            
+            codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
+              if (result) {
+                // Stop further decoding once a result is found
+                codeReader.reset();
+                if (videoRef.current && videoRef.current.srcObject) {
+                  (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+                }
+
+                const scannedId = result.getText();
+                const kid = allKids.find(k => k.id === scannedId);
+                if (kid) {
+                  handleCheckIn(kid);
+                } else {
+                  toast({
+                    variant: 'destructive',
+                    title: 'Kid Not Found',
+                    description: `No kid record found for ID: ${scannedId}`,
+                  });
+                  setScannerOpen(false); // Close dialog if not found
+                }
+              }
+              // Don't log NotFoundException on every frame
+              if (err && !(err instanceof NotFoundException)) {
+                console.error("Barcode scanning error:", err);
+              }
             });
           }
-        } else {
+        })
+        .catch(err => {
+          console.error("Camera access error:", err);
           setHasCameraPermission(false);
           toast({
             variant: 'destructive',
-            title: 'Camera Not Supported',
-            description: 'Your browser does not support camera access.',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to scan barcodes.',
           });
-        }
-      };
+        });
+    }
 
-      enableCamera();
-    } else {
-      // Cleanup: stop the stream when scanner closes.
+    return () => {
+      isMounted = false;
+      codeReader.reset();
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
+        stream.getTracks().forEach(track => track.stop());
         videoRef.current.srcObject = null;
       }
-      setHasCameraPermission(null);
-    }
-  }, [isScannerOpen, toast]);
+    };
+  }, [isScannerOpen, allKids, handleCheckIn, toast]);
 
   // Effect to handle the success overlay auto-close
   useEffect(() => {
@@ -137,58 +192,6 @@ export default function HomePage() {
         kid.parentPhone.includes(searchTerm)
     );
     setSearchResults(results);
-  };
-
-  const handleCheckIn = async (kid: Kid) => {
-    // Show success overlay optimistically with the kid's info and updated coin balance
-    setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
-    
-    if (isScannerOpen) {
-      setScannerOpen(false);
-      // Brief timeout to allow scanner dialog to close
-      setTimeout(() => setShowSuccess(true), 300);
-    } else {
-      setShowSuccess(true);
-    }
-
-    try {
-      // Perform the database update in the background
-      await checkInKid(kid.id);
-
-      // On success, refresh all kid data to ensure UI is consistent
-      const refreshedKids = await getKids();
-      setAllKids(refreshedKids);
-
-      // Update the lists that are currently displayed
-      if (searchResults.length > 0) {
-          setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
-      } else {
-          setQuickCheckInKids(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
-      }
-    } catch (e) {
-      console.error("Check-in failed:", e);
-      toast({
-        variant: "destructive",
-        title: "Check-in Failed",
-        description: "Could not sync with database. Please try again.",
-      });
-      
-      // On failure, immediately hide the success overlay
-      setShowSuccess(false);
-      setKidForSuccessOverlay(null);
-    }
-  };
-
-  const handleSimulateScan = () => {
-    if (allKids.length > 0) {
-      const randomKid = allKids[Math.floor(Math.random() * allKids.length)];
-      handleCheckIn(randomKid);
-    } else {
-      toast({
-        title: 'No kids to check in',
-        description: 'Please add some kids first.',
-      });
-    }
   };
 
   return (
@@ -240,7 +243,7 @@ export default function HomePage() {
                   <DialogHeader>
                     <DialogTitle>Scan Barcode</DialogTitle>
                   </DialogHeader>
-                  <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted">
                     <video
                       ref={videoRef}
                       className="h-full w-full object-cover"
@@ -264,9 +267,6 @@ export default function HomePage() {
                       </div>
                     )}
                   </div>
-                  <Button onClick={handleSimulateScan} className="w-full">
-                    Simulate Scan & Check In
-                  </Button>
                 </DialogContent>
               </Dialog>
               <Button
