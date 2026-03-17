@@ -27,7 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/browser';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 export default function HomePage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -138,7 +138,7 @@ export default function HomePage() {
                 }
               }
               // Don't log NotFoundException on every frame
-              if (err && !(err instanceof NotFoundException)) {
+              if (err && err.name !== 'NotFoundException') {
                 console.error("Barcode scanning error:", err);
               }
             });
