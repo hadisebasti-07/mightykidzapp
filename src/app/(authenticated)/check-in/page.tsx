@@ -237,7 +237,7 @@ export default function HomePage() {
                     <span className="text-xs">Scan</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-xl">
                   <DialogHeader>
                     <DialogTitle>Scan Barcode</DialogTitle>
                   </DialogHeader>
