@@ -105,61 +105,66 @@ export default function HomePage() {
   }, [isScannerOpen, toast]);
 
   useEffect(() => {
-    const codeReader = new BrowserMultiFormatReader();
-    let isMounted = true;
-
-    if (isScannerOpen && isMounted) {
-      setHasCameraPermission(true); // Be optimistic
-      
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(stream => {
-          if (videoRef.current && isMounted) {
-            videoRef.current.srcObject = stream;
-            
-            codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
-              if (result) {
-                // Stop further decoding once a result is found
-                if (videoRef.current && videoRef.current.srcObject) {
-                  (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-                }
-
-                const scannedId = result.getText();
-                const kid = allKids.find(k => k.id === scannedId);
-                if (kid) {
-                  handleCheckIn(kid);
-                } else {
-                  toast({
-                    variant: 'destructive',
-                    title: 'Kid Not Found',
-                    description: `No kid record found for ID: ${scannedId}`,
-                  });
-                  setScannerOpen(false); // Close dialog if not found
-                }
-              }
-              // Don't log NotFoundException on every frame
-              if (err && err.name !== 'NotFoundException') {
-                console.error("Barcode scanning error:", err);
-              }
-            });
-          }
-        })
-        .catch(err => {
-          console.error("Camera access error:", err);
-          setHasCameraPermission(false);
-          toast({
-            variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings to scan barcodes.',
-          });
-        });
+    if (!isScannerOpen) {
+      return;
     }
 
+    const codeReader = new BrowserMultiFormatReader();
+    let stream: MediaStream | null = null;
+    
+    const startScanner = async () => {
+      try {
+        setHasCameraPermission(true); // Optimistic
+        const videoStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+        stream = videoStream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          
+          codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
+            if (result) {
+              if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+              }
+              const scannedId = result.getText();
+              const kid = allKids.find((k) => k.id === scannedId);
+              if (kid) {
+                handleCheckIn(kid);
+              } else {
+                toast({
+                  variant: 'destructive',
+                  title: 'Kid Not Found',
+                  description: `No kid record found for ID: ${scannedId}`,
+                });
+                setScannerOpen(false);
+              }
+            } else if (err && err.name !== 'NotFoundException') {
+              console.error('Barcode scanning error:', err);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Camera access error:', err);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to scan barcodes.',
+        });
+      }
+    };
+
+    startScanner();
+
     return () => {
-      isMounted = false;
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [isScannerOpen, allKids, handleCheckIn, toast]);
