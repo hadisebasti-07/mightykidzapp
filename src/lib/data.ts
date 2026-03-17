@@ -18,6 +18,7 @@ import {
   limit,
   where,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { format } from 'date-fns';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
@@ -25,6 +26,7 @@ import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { type KidFormValues, type GiftFormValues } from './schemas';
 import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
+import { z } from 'zod';
 
 export const addKid = async (data: KidFormValues) => {
   const birthDate = data.dateOfBirth; // This is a Date object
@@ -59,6 +61,85 @@ export const addKid = async (data: KidFormValues) => {
       })
     );
   });
+};
+
+export const importKids = async (csvData: string) => {
+  const batch = writeBatch(db);
+  const lines = csvData.trim().split('\n');
+  let successCount = 0;
+  let errorCount = 0;
+  const errors: { line: number; error: string; data: string }[] = [];
+
+  const kidImportSchema = z.object({
+    firstName: z.string().min(2),
+    lastName: z.string().min(2),
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+    gender: z.enum(['Male', 'Female']),
+    parentName: z.string().min(2),
+    parentPhone: z.string().min(10),
+  });
+
+  lines.forEach((line, index) => {
+    if (!line.trim()) return;
+
+    const values = line.split(',').map(v => v.trim());
+    const [firstName, lastName, dateOfBirth, gender, parentName, parentPhone] = values;
+
+    const parseResult = kidImportSchema.safeParse({
+      firstName,
+      lastName,
+      dateOfBirth,
+      gender,
+      parentName,
+      parentPhone,
+    });
+
+    if (!parseResult.success) {
+      errorCount++;
+      errors.push({ line: index + 1, error: parseResult.error.message, data: line });
+      return; // Skip this line
+    }
+
+    const data = parseResult.data;
+
+    const newKidRef = doc(collection(db, 'kids'));
+    const newKidData = {
+      id: newKidRef.id,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      nickname: '',
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender,
+      parentName: data.parentName,
+      parentPhone: data.parentPhone,
+      allergies: '',
+      medicalNotes: '',
+      photoUrl: `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
+      coinsBalance: 0,
+      totalAttendance: 0,
+      birthdayMonth: parseInt(data.dateOfBirth.split('-')[1], 10),
+      createdAt: new Date().toISOString(),
+    };
+
+    batch.set(newKidRef, newKidData);
+    successCount++;
+  });
+
+  if (successCount > 0) {
+    await batch.commit().catch((serverError) => {
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: 'kids collection',
+            operation: 'create (batch)',
+            requestResourceData: { note: `Batch write for ${successCount} kids.` }
+          })
+        );
+        throw serverError;
+    });
+  }
+
+  return { successCount, errorCount, errors };
 };
 
 export const getKids = async (): Promise<Kid[]> => {

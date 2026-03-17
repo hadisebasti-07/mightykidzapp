@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { ImportKidsDialog } from '@/components/kids/import-dialog';
 
 export default function KidsPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -125,12 +126,15 @@ export default function KidsPage() {
               <X className="mr-2" /> Clear Filter
             </Button>
           ) : (
-            <Button asChild>
-              <Link href="/kids/new">
-                <PlusCircle />
-                Add Kid
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <ImportKidsDialog />
+              <Button asChild>
+                <Link href="/kids/new">
+                  <PlusCircle />
+                  Add Kid
+                </Link>
+              </Button>
+            </div>
           )}
         </PageHeader>
 
