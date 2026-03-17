@@ -309,11 +309,11 @@ export default function HomePage() {
                     {kid.lastName.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <p className="text-xl font-bold">
+                <div className="flex-1 overflow-hidden">
+                  <p className="truncate text-xl font-bold">
                     {kid.firstName} {kid.lastName}
                   </p>
-                  <p className="text-muted-foreground">
+                  <p className="truncate text-muted-foreground">
                     Parent: {kid.parentName}
                   </p>
                 </div>
@@ -350,11 +350,11 @@ export default function HomePage() {
                           {kid.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
-                        <p className="text-xl font-bold">
+                      <div className="flex-1 overflow-hidden">
+                        <p className="truncate text-xl font-bold">
                           {kid.firstName} {kid.lastName}
                         </p>
-                        <p className="text-muted-foreground">
+                        <p className="truncate text-muted-foreground">
                           Parent: {kid.parentName}
                         </p>
                       </div>
@@ -382,7 +382,7 @@ export default function HomePage() {
       {showSuccess && kidForSuccessOverlay && (
         <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
           <Confetti />
-          <div className="relative flex flex-col items-center rounded-3xl bg-card/80 p-8 text-center backdrop-blur-lg md:p-12">
+          <div className="relative flex flex-col items-center rounded-3xl bg-card/80 p-6 text-center backdrop-blur-lg sm:p-8 md:p-12">
             <Avatar className="h-32 w-32 border-8 border-background shadow-lg md:h-40 md:w-40">
               <AvatarImage
                 src={kidForSuccessOverlay.photoUrl}

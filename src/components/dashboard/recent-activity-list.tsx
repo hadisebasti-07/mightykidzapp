@@ -71,8 +71,8 @@ export function RecentActivityList() {
             </Avatar>
             <ActivityIcon type={activity.type} />
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-medium break-words">
               <span className="font-semibold">{activity.kidName}</span> {activity.details}
             </p>
              <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
