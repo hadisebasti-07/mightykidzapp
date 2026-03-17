@@ -8,20 +8,20 @@ import { Gift } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function EditGiftPage({ params: { id } }: { params: { id: string } }) {
+export default function EditGiftPage({ params }: { params: { id: string } }) {
   const [gift, setGift] = useState<Gift | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!params.id) return;
     const fetchGift = async () => {
       try {
-        const giftData = await getGiftById(id);
+        const giftData = await getGiftById(params.id);
         if (giftData) {
           setGift(giftData);
         } else {
-          setError(`Gift with id ${id} not found.`);
+          setError(`Gift with id ${params.id} not found.`);
         }
       } catch (fetchError) {
         console.error("Failed to fetch gift:", fetchError);
@@ -31,7 +31,7 @@ export default function EditGiftPage({ params: { id } }: { params: { id: string 
       }
     };
     fetchGift();
-  }, [id]);
+  }, [params.id]);
 
   return (
     <div className="flex flex-col gap-8">

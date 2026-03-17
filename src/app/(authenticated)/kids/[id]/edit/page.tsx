@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 
-export default function EditKidPage({ params: { id } }: { params: { id: string } }) {
+export default function EditKidPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [kid, setKid] = useState<Kid | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,12 +24,12 @@ export default function EditKidPage({ params: { id } }: { params: { id: string }
   useEffect(() => {
     const fetchKid = async () => {
       try {
-        const kidData = await getKidById(id);
+        const kidData = await getKidById(params.id);
         if (kidData) {
           setKid(kidData);
         } else {
-          setError(`Kid with id ${id} not found.`);
-          console.error(`Kid with id ${id} not found.`);
+          setError(`Kid with id ${params.id} not found.`);
+          console.error(`Kid with id ${params.id} not found.`);
         }
       } catch (fetchError) {
         console.error("Failed to fetch kid:", fetchError);
@@ -39,7 +39,7 @@ export default function EditKidPage({ params: { id } }: { params: { id: string }
       }
     };
     fetchKid();
-  }, [id]);
+  }, [params.id]);
 
   return (
     <div className="flex flex-col gap-8">
