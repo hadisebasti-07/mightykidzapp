@@ -23,7 +23,7 @@ import {
 import { format } from 'date-fns';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
-import { type KidFormValues, type GiftFormValues } from './schemas';
+import { type KidFormValues, type GiftFormValues, kidImportSchema } from './schemas';
 import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
 import { z } from 'zod';
@@ -72,66 +72,56 @@ export const importKids = async (csvData: string) => {
   let errorCount = 0;
   const errors: { line: number; error: string; data: string }[] = [];
 
-  const kidImportSchema = z.object({
-    firstName: z.string().min(2),
-    lastName: z.string().min(2),
-    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
-    gender: z.enum(['Male', 'Female']),
-    parentName: z.string().min(2),
-    parentPhone: z.string().min(10),
-    className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']),
-    houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
-  });
+  const headers = [
+    'id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'parentName', 'parentPhone', 
+    'className', 'houseColor', 'nickname', 'allergies', 'medicalNotes', 'photoUrl', 
+    'coinsBalance', 'totalAttendance'
+  ];
 
-  lines.forEach((line, index) => {
-    if (!line.trim()) return;
+  for (const [index, line] of lines.entries()) {
+    if (!line.trim()) continue;
 
     const values = line.split(',').map(v => v.trim());
-    const [firstName, lastName, dateOfBirth, gender, parentName, parentPhone, className, houseColor] = values;
-
-    const parseResult = kidImportSchema.safeParse({
-      firstName,
-      lastName,
-      dateOfBirth,
-      gender,
-      parentName,
-      parentPhone,
-      className,
-      houseColor,
+    const rowData: { [key: string]: string } = {};
+    headers.forEach((header, i) => {
+      rowData[header] = values[i] || '';
     });
+    
+    const parseResult = kidImportSchema.safeParse(rowData);
 
     if (!parseResult.success) {
       errorCount++;
-      errors.push({ line: index + 1, error: parseResult.error.message, data: line });
-      return; // Skip this line
+      const errorMessages = parseResult.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; ');
+      errors.push({ line: index + 1, error: errorMessages, data: line });
+      continue;
     }
 
     const data = parseResult.data;
-
-    const newKidRef = doc(collection(db, 'kids'));
+    const docRef = data.id ? doc(db, 'kids', data.id) : doc(collection(db, 'kids'));
+    
     const newKidData = {
-      id: newKidRef.id,
+      id: docRef.id,
       firstName: data.firstName,
       lastName: data.lastName,
-      nickname: '',
       dateOfBirth: data.dateOfBirth,
       gender: data.gender,
       parentName: data.parentName,
       parentPhone: data.parentPhone,
-      allergies: '',
-      medicalNotes: '',
-      photoUrl: `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
-      coinsBalance: 0,
-      totalAttendance: 0,
       className: data.className,
       houseColor: data.houseColor || '',
+      nickname: data.nickname || '',
+      allergies: data.allergies || '',
+      medicalNotes: data.medicalNotes || '',
+      photoUrl: data.photoUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
+      coinsBalance: data.coinsBalance,
+      totalAttendance: data.totalAttendance,
       birthdayMonth: parseInt(data.dateOfBirth.split('-')[1], 10),
       createdAt: new Date().toISOString(),
     };
 
-    batch.set(newKidRef, newKidData);
+    batch.set(docRef, newKidData);
     successCount++;
-  });
+  }
 
   if (successCount > 0) {
     await batch.commit().catch((serverError) => {

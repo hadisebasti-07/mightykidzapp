@@ -1,3 +1,4 @@
+'use client';
 import { z } from 'zod';
 
 export const kidFormSchema = z.object({
@@ -20,6 +21,27 @@ export const kidFormSchema = z.object({
 });
 
 export type KidFormValues = z.infer<typeof kidFormSchema>;
+
+
+export const kidImportSchema = z.object({
+  id: z.string().optional().or(z.literal('')),
+  firstName: z.string().min(1, { message: 'firstName is required' }),
+  lastName: z.string().min(1, { message: 'lastName is required' }),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  gender: z.enum(['Male', 'Female']),
+  parentName: z.string().min(1, { message: 'parentName is required' }),
+  parentPhone: z.string().min(1, { message: 'parentPhone is required' }),
+  className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']),
+  houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional().or(z.literal('')),
+  nickname: z.string().optional(),
+  allergies: z.string().optional(),
+  medicalNotes: z.string().optional(),
+  photoUrl: z.string().url({ message: 'Invalid photo URL' }).optional().or(z.literal('')),
+  coinsBalance: z.coerce.number().int().default(0),
+  totalAttendance: z.coerce.number().int().default(0),
+});
+export type KidImportValues = z.infer<typeof kidImportSchema>;
+
 
 export const giftFormSchema = z.object({
     name: z.string().min(2, { message: 'Gift name must be at least 2 characters.' }),

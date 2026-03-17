@@ -79,6 +79,9 @@ export function ImportKidsDialog() {
     }
   };
 
+  const csvHeaders = `id,firstName,lastName,dateOfBirth,gender,parentName,parentPhone,className,houseColor,nickname,allergies,medicalNotes,photoUrl,coinsBalance,totalAttendance`;
+  const exampleCsv = `kid001,Liam,Smith,2018-05-12,Male,Emma Smith,111-222-3333,explorer,Blue,Li,,,https://example.com/photo.jpg,100,5`;
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -87,21 +90,27 @@ export function ImportKidsDialog() {
           Import Kids
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Import Kids Data</DialogTitle>
           <DialogDescription>
-            Paste CSV data below. Each line should contain one kid's record.
-            The required format is:
-            <code className="my-2 block rounded bg-muted p-2 text-sm text-foreground">
-              firstName,lastName,YYYY-MM-DD,gender,parentName,parentPhone,className,houseColor
+            Paste CSV data below, with each kid on a new line. The header row is not required.
+            The `id` is optional and can be left blank to auto-generate.
+            <br />
+            <strong>Required format:</strong>
+            <code className="my-2 block rounded bg-muted p-2 text-xs text-foreground overflow-x-auto">
+              {csvHeaders}
             </code>
-            (gender must be 'Male' or 'Female'. class must be 'discoverer', 'explorer', 'adventurer', or 'warrior'. houseColor is optional)
+            - `dateOfBirth`: YYYY-MM-DD
+            <br />
+            - `gender`: 'Male' or 'Female'
+            <br />
+            - `className`: 'discoverer', 'explorer', 'adventurer', or 'warrior'
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Textarea
-            placeholder="Liam,Smith,2018-05-12,Male,Emma Smith,111-222-3333,explorer,Blue&#10;Olivia,Jones,2019-09-20,Female,Noah Jones,444-555-6666,discoverer,Red"
+            placeholder={exampleCsv}
             className="min-h-[150px] font-mono text-xs"
             value={csvData}
             onChange={(e) => setCsvData(e.target.value)}
