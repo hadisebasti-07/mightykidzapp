@@ -12,16 +12,17 @@ export default function EditGiftPage({ params }: { params: { id: string } }) {
   const [gift, setGift] = useState<Gift | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { id } = params;
 
   useEffect(() => {
-    if (!params.id) return;
+    if (!id) return;
     const fetchGift = async () => {
       try {
-        const giftData = await getGiftById(params.id);
+        const giftData = await getGiftById(id);
         if (giftData) {
           setGift(giftData);
         } else {
-          setError(`Gift with id ${params.id} not found.`);
+          setError(`Gift with id ${id} not found.`);
         }
       } catch (fetchError) {
         console.error("Failed to fetch gift:", fetchError);
@@ -31,7 +32,7 @@ export default function EditGiftPage({ params }: { params: { id: string } }) {
       }
     };
     fetchGift();
-  }, [params.id]);
+  }, [id]);
 
   return (
     <div className="flex flex-col gap-8">
