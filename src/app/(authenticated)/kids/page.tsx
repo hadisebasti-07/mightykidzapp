@@ -159,6 +159,7 @@ export default function KidsPage() {
                 key={kid.id}
                 kid={kid}
                 onDelete={() => handleDeleteRequest(kid)}
+                showBirthday={filter === 'this_month_birthdays'}
               />
             ))
           ) : (
