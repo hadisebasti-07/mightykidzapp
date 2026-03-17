@@ -4,7 +4,13 @@ import { getKids, deleteKid } from '@/lib/data';
 import { KidCard } from '@/components/kids/kid-card';
 import { PageHeader } from '@/components/page-header';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { PlusCircle, SlidersHorizontal, Search, X } from 'lucide-react';
+import {
+  PlusCircle,
+  SlidersHorizontal,
+  Search,
+  X,
+  Download,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
@@ -96,6 +102,76 @@ export default function KidsPage() {
     }
   };
 
+  const handleExport = async () => {
+    toast({
+      title: 'Exporting...',
+      description: 'Preparing your data for download.',
+    });
+
+    try {
+      // Use allKids state which is already fetched.
+      if (allKids.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'No Data to Export',
+          description: 'There are no kid profiles to export.',
+        });
+        return;
+      }
+
+      const headers = [
+        'id', 'firstName', 'lastName', 'nickname', 'dateOfBirth', 'gender',
+        'className', 'houseColor', 'parentName', 'parentPhone', 'allergies',
+        'medicalNotes', 'coinsBalance', 'totalAttendance', 'createdAt'
+      ];
+      
+      const escapeCsvCell = (cellData: any) => {
+        if (cellData === undefined || cellData === null) {
+          return '';
+        }
+        const stringData = String(cellData);
+        if (/[",\n]/.test(stringData)) {
+          return `"${stringData.replace(/"/g, '""')}"`;
+        }
+        return stringData;
+      };
+
+      const csvRows = [headers.join(',')];
+
+      for (const kid of allKids) {
+        const values = headers.map(header => {
+          const value = (kid as any)[header];
+          return escapeCsvCell(value);
+        });
+        csvRows.push(values.join(','));
+      }
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `mightykidz-kids-export-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Export Complete',
+        description: `${allKids.length} kid profiles have been downloaded.`,
+      });
+
+    } catch (error) {
+      console.error('Failed to export kids:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: 'Could not export the kid data. Please try again.',
+      });
+    }
+  };
+
   const KidCardSkeleton = () => (
     <Card className="overflow-hidden">
       <Skeleton className="aspect-square w-full" />
@@ -127,6 +203,10 @@ export default function KidsPage() {
             </Button>
           ) : (
             <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleExport}>
+                <Download />
+                Export All
+              </Button>
               <ImportKidsDialog />
               <Button asChild>
                 <Link href="/kids/new">
