@@ -93,7 +93,7 @@ export default function DashboardPage() {
               icon={Cake}
               iconColor="text-pink-600"
               iconBg="bg-pink-100"
-              href="/kids"
+              href="/kids?filter=this_month_birthdays"
             />
             <StatCard
               title="Total Gift Stock"
