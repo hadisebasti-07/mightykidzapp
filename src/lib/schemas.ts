@@ -15,7 +15,7 @@ export const kidFormSchema = z.object({
   }),
   houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
   parentName: z.string().min(2, { message: 'Parent name is required.' }),
-  parentPhone: z.string().min(10, { message: 'Phone number must be at least 10 digits.' }),
+  parentPhone: z.string().length(8, { message: 'Phone number must be 8 digits.' }),
   allergies: z.string().optional(),
   medicalNotes: z.string().optional(),
 });
@@ -30,7 +30,7 @@ export const kidImportSchema = z.object({
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
   gender: z.enum(['Male', 'Female']),
   parentName: z.string().min(1, { message: 'parentName is required' }),
-  parentPhone: z.string().min(1, { message: 'parentPhone is required' }),
+  parentPhone: z.string().length(8, { message: 'Phone number must be 8 digits.' }),
   className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']),
   houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional().or(z.literal('')),
   nickname: z.string().optional(),

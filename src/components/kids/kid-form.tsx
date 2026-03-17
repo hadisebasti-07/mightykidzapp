@@ -366,7 +366,7 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
                 <FormItem>
                 <FormLabel>Parent's Phone</FormLabel>
                 <FormControl>
-                    <Input placeholder="111-222-3333" {...field} />
+                    <Input placeholder="12345678" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
