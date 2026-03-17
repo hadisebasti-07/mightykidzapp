@@ -27,7 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
-import { BrowserMultiFormatReader } from '@zxing/browser';
+import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/browser';
 
 export default function HomePage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -37,6 +37,7 @@ export default function HomePage() {
 
   const [kidForSuccessOverlay, setKidForSuccessOverlay] = useState<Kid | null>(null);
   const [isScannerOpen, setScannerOpen] = useState(false);
+  const [isClosingScanner, setIsClosingScanner] = useState(false);
 
   // State for the success overlay
   const [showSuccess, setShowSuccess] = useState(false);
@@ -103,14 +104,28 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isScannerOpen) {
+      setIsClosingScanner(false);
       return;
     }
-
-    const codeReader = new BrowserMultiFormatReader();
+    
+    setIsClosingScanner(false);
+    let isMounted = true;
+    
+    const hints = new Map();
+    // Using the numeric value for DecodeHintType.POSSIBLE_FORMATS to avoid import issue
+    hints.set(9, [
+      BarcodeFormat.QR_CODE,
+      BarcodeFormat.DATA_MATRIX,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.UPC_A,
+    ]);
+    const codeReader = new BrowserMultiFormatReader(hints);
     let stream: MediaStream | null = null;
     
     const startScanner = async () => {
       try {
+        if (!isMounted) return;
         setHasCameraPermission(true); // Optimistic
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -120,11 +135,16 @@ export default function HomePage() {
           },
         });
 
-        if (videoRef.current) {
+        if (videoRef.current && isMounted) {
           videoRef.current.srcObject = stream;
           
           codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
-            if (result && isScannerOpen) {
+            if (isClosingScanner || !isMounted) {
+              return;
+            }
+
+            if (result) {
+              setIsClosingScanner(true);
               setScannerOpen(false); 
 
               const scannedId = result.getText();
@@ -145,6 +165,7 @@ export default function HomePage() {
           });
         }
       } catch (err) {
+        if (!isMounted) return;
         console.error('Camera access error:', err);
         setHasCameraPermission(false);
         toast({
@@ -159,11 +180,7 @@ export default function HomePage() {
     startScanner();
 
     return () => {
-      try {
-        codeReader.reset();
-      } catch (e) {
-        console.error("Failed to reset code reader", e);
-      }
+      isMounted = false;
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
@@ -171,7 +188,7 @@ export default function HomePage() {
         videoRef.current.srcObject = null;
       }
     };
-  }, [isScannerOpen, allKids, handleCheckIn, toast]);
+  }, [isScannerOpen, allKids, handleCheckIn, toast, isClosingScanner]);
 
   // Effect to handle the success overlay auto-close
   useEffect(() => {
@@ -246,7 +263,7 @@ export default function HomePage() {
                     <span className="text-xs">Scan</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-xl">
+                <DialogContent className="max-w-3xl">
                   <DialogHeader>
                     <DialogTitle>Scan Barcode</DialogTitle>
                   </DialogHeader>
