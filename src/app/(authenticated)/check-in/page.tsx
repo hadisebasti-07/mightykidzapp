@@ -119,7 +119,6 @@ export default function HomePage() {
             codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
               if (result) {
                 // Stop further decoding once a result is found
-                codeReader.reset();
                 if (videoRef.current && videoRef.current.srcObject) {
                   (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
                 }
@@ -157,7 +156,6 @@ export default function HomePage() {
 
     return () => {
       isMounted = false;
-      codeReader.reset();
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
