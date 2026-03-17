@@ -375,9 +375,9 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
     });
 
     return formattedActivities as RecentActivity[];
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching recent activities:', error);
-    if (error instanceof Error && error.message.includes('permission-denied')) {
+    if (error && error.code === 'permission-denied') {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: 'attendances or redemptions collection group',
             operation: 'list'
@@ -423,9 +423,9 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       totalGiftStock,
     };
     return stats;
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Stats] Error fetching dashboard stats:', error);
-    if (error instanceof Error && error.message.includes('permission-denied')) {
+    if (error && error.code === 'permission-denied') {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -444,3 +444,5 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     return emptyStats;
   }
 };
+
+    
