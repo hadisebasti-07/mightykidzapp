@@ -388,23 +388,28 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
 };
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
+  console.log('[Stats] Fetching dashboard stats...');
   try {
     const kidsSnapshot = await getDocs(collection(db, 'kids'));
     const giftsSnapshot = await getDocs(collection(db, 'gifts'));
 
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
+    console.log(`[Stats] Current month (1-12): ${currentMonth}`);
 
     const birthdayQuery = query(collection(db, 'kids'), where('birthdayMonth', '==', currentMonth));
     const monthlyBirthdaySnapshot = await getDocs(birthdayQuery);
     const thisMonthsBirthdays = monthlyBirthdaySnapshot.size;
+    console.log(`[Stats] Found ${thisMonthsBirthdays} birthdays this month.`);
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
+    console.log(`[Stats] Querying for check-ins since: ${startOfToday.toISOString()}`);
 
     const attendanceQuery = query(collectionGroup(db, 'attendances'), where('timestamp', '>=', startOfToday));
     const todayAttendanceSnapshot = await getDocs(attendanceQuery);
     const kidsCheckedIn = todayAttendanceSnapshot.size;
+    console.log(`[Stats] Found ${kidsCheckedIn} check-ins today.`);
 
     let totalGiftStock = 0;
     giftsSnapshot.forEach((doc) => {
@@ -413,28 +418,39 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         totalGiftStock += gift.stock || 0;
       }
     });
+    console.log(`[Stats] Calculated total gift stock: ${totalGiftStock}`);
 
     const totalKids = kidsSnapshot.size;
-
-    return {
+    console.log(`[Stats] Found total kids: ${totalKids}`);
+    
+    const stats: DashboardStats = {
       totalKids,
       kidsCheckedIn,
       thisMonthsBirthdays,
       totalGiftStock,
     };
+
+    console.log('[Stats] Final stats object:', stats);
+
+    return stats;
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
-     if (error instanceof Error && error.message.includes('permission-denied')) {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'kids or gifts collection',
-            operation: 'list'
-        }));
+    console.error('[Stats] Error fetching dashboard stats:', error);
+    if (error instanceof Error && error.message.includes('permission-denied')) {
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: 'kids or gifts collection or attendance collection group',
+          operation: 'list',
+        })
+      );
     }
-    return {
+    const emptyStats: DashboardStats = {
       totalKids: 0,
       kidsCheckedIn: 0,
       thisMonthsBirthdays: 0,
       totalGiftStock: 0,
     };
+    console.log('[Stats] Returning empty stats due to error:', emptyStats);
+    return emptyStats;
   }
 };
