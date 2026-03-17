@@ -272,7 +272,7 @@ export default function HomePage() {
                   <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted">
                     <video
                       ref={videoRef}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       autoPlay
                       playsInline
                       muted
