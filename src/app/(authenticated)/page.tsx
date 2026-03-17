@@ -265,20 +265,18 @@ export default function HomePage() {
                     <span className="text-xs">Scan</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl">
-                  <DialogHeader>
-                    <DialogTitle>Scan Barcode</DialogTitle>
-                  </DialogHeader>
-                  <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
+                <DialogContent className="max-w-2xl p-0">
+                  <div className="relative h-[75svh] w-full">
                     <video
                       ref={videoRef}
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-cover"
                       autoPlay
                       playsInline
                       muted
                     />
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                      <div className="h-2/3 w-2/3 rounded-lg border-4 border-dashed border-primary" />
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/20">
+                      <h2 className="mb-4 text-lg font-medium text-white drop-shadow-md">Scan Barcode</h2>
+                      <div className="h-1/2 w-4/5 rounded-2xl border-4 border-dashed border-white/80" />
                     </div>
                     {hasCameraPermission === false && (
                       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 p-4 text-center text-white">
