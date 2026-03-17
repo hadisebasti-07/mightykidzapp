@@ -49,7 +49,7 @@ export const addKid = async (data: KidFormValues) => {
     totalAttendance: 0,
     birthdayMonth: parseInt(dateString.split('-')[1], 10),
     createdAt: new Date().toISOString(),
-    className: data.className || '',
+    className: data.className,
     houseColor: data.houseColor || '',
   };
 
@@ -79,8 +79,8 @@ export const importKids = async (csvData: string) => {
     gender: z.enum(['Male', 'Female']),
     parentName: z.string().min(2),
     parentPhone: z.string().min(10),
-    className: z.string().optional(),
-    houseColor: z.string().optional(),
+    className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']),
+    houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
   });
 
   lines.forEach((line, index) => {
@@ -123,7 +123,7 @@ export const importKids = async (csvData: string) => {
       photoUrl: `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
       coinsBalance: 0,
       totalAttendance: 0,
-      className: data.className || '',
+      className: data.className,
       houseColor: data.houseColor || '',
       birthdayMonth: parseInt(data.dateOfBirth.split('-')[1], 10),
       createdAt: new Date().toISOString(),

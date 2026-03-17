@@ -96,12 +96,12 @@ export function ImportKidsDialog() {
             <code className="my-2 block rounded bg-muted p-2 text-sm text-foreground">
               firstName,lastName,YYYY-MM-DD,gender,parentName,parentPhone,className,houseColor
             </code>
-            (gender must be 'Male' or 'Female')
+            (gender must be 'Male' or 'Female'. class must be 'discoverer', 'explorer', 'adventurer', or 'warrior'. houseColor is optional)
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Textarea
-            placeholder="Liam,Smith,2018-05-12,Male,Emma Smith,111-222-3333,Elementary (5-10yr),Blue&#10;Olivia,Jones,2019-09-20,Female,Noah Jones,444-555-6666,Preschool (3-4yr),Red"
+            placeholder="Liam,Smith,2018-05-12,Male,Emma Smith,111-222-3333,explorer,Blue&#10;Olivia,Jones,2019-09-20,Female,Noah Jones,444-555-6666,discoverer,Red"
             className="min-h-[150px] font-mono text-xs"
             value={csvData}
             onChange={(e) => setCsvData(e.target.value)}

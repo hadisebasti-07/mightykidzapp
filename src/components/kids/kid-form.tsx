@@ -60,8 +60,8 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
       parentPhone: '',
       allergies: '',
       medicalNotes: '',
-      className: '',
-      houseColor: '',
+      className: undefined,
+      houseColor: undefined,
   };
 
   const form = useForm<KidFormValues>({
@@ -311,9 +311,10 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Nursery (0-2yr)">Nursery (0-2yr)</SelectItem>
-                      <SelectItem value="Preschool (3-4yr)">Preschool (3-4yr)</SelectItem>
-                      <SelectItem value="Elementary (5-10yr)">Elementary (5-10yr)</SelectItem>
+                      <SelectItem value="discoverer">Discoverer</SelectItem>
+                      <SelectItem value="explorer">Explorer</SelectItem>
+                      <SelectItem value="adventurer">Adventurer</SelectItem>
+                      <SelectItem value="warrior">Warrior</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
