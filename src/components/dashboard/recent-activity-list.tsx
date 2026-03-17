@@ -6,6 +6,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { RecentActivity } from '@/lib/types';
+import { UserCheck, Gift } from 'lucide-react';
+
+const ActivityIcon = ({ type }: { type: 'check-in' | 'redemption' }) => {
+  const Icon = type === 'check-in' ? UserCheck : Gift;
+  return (
+      <div
+          className={cn(
+              'absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full',
+              type === 'check-in' ? 'bg-blue-500' : 'bg-accent'
+          )}
+      >
+          <Icon className="h-3 w-3 text-white" />
+      </div>
+  );
+};
+
 
 const ActivitySkeleton = () => (
     <div className="flex items-start gap-4">
@@ -53,14 +69,7 @@ export function RecentActivityList() {
                 {activity.kidName.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
-            <div
-              className={cn(
-                'absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full',
-                activity.type === 'check-in' ? 'bg-blue-500' : 'bg-accent'
-              )}
-            >
-              <activity.icon className="h-3 w-3 text-white" />
-            </div>
+            <ActivityIcon type={activity.type} />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium">

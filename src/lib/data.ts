@@ -116,18 +116,25 @@ export const deleteKid = async (kidId: string) => {
 
 export const checkInKid = async (kidId: string) => {
   const kidRef = doc(db, 'kids', kidId);
-  const kidSnap = await getDoc(kidRef);
-  if (!kidSnap.exists()) {
-    throw new Error('Kid not found');
-  }
-  const kidData = kidSnap.data();
-  const attendanceRef = doc(collection(db, 'kids', kidId, 'attendances'));
+  
+  return runTransaction(db, async (transaction) => {
+    const kidSnap = await transaction.get(kidRef);
+    if (!kidSnap.exists()) {
+      throw new Error('Kid not found');
+    }
+    const kidData = kidSnap.data();
+    
+    // Define refs for all documents to be written
+    const attendanceRef = doc(collection(db, 'kids', kidId, 'attendances'));
+    const activityRef = doc(collection(db, 'activities'));
 
-  runTransaction(db, async (transaction) => {
+    // Kid update
     transaction.update(kidRef, {
       coinsBalance: increment(10),
       totalAttendance: increment(1),
     });
+
+    // Attendance sub-collection record (for per-kid history)
     transaction.set(attendanceRef, {
       id: attendanceRef.id,
       kidId: kidId,
@@ -135,6 +142,18 @@ export const checkInKid = async (kidId: string) => {
       photoUrl: kidData.photoUrl,
       timestamp: serverTimestamp(),
     });
+
+    // Top-level activity record for fast queries
+    transaction.set(activityRef, {
+        id: activityRef.id,
+        type: 'check-in',
+        kidId: kidId,
+        kidName: `${kidData.firstName} ${kidData.lastName}`,
+        photoUrl: kidData.photoUrl,
+        details: 'Checked in',
+        timestamp: serverTimestamp()
+    });
+
   }).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
@@ -143,7 +162,7 @@ export const checkInKid = async (kidId: string) => {
         operation: 'update',
         requestResourceData: {
           kidUpdate: { coinsBalance: 'increment(10)', totalAttendance: 'increment(1)' },
-          attendanceCreate: { kidId: kidId },
+          activityCreate: { type: 'check-in' },
         },
       })
     );
@@ -226,7 +245,6 @@ export const deleteGift = async (giftId: string) => {
 export const redeemGift = async (kidId: string, giftId: string) => {
   const kidRef = doc(db, 'kids', kidId);
   const giftRef = doc(db, 'gifts', giftId);
-  const redemptionRef = doc(collection(db, 'kids', kidId, 'redemptions'));
 
   return runTransaction(db, async (transaction) => {
     const kidDoc = await transaction.get(kidRef);
@@ -247,6 +265,10 @@ export const redeemGift = async (kidId: string, giftId: string) => {
       throw new Error('Gift is out of stock!');
     }
 
+    const redemptionRef = doc(collection(db, 'kids', kidId, 'redemptions'));
+    const activityRef = doc(collection(db, 'activities'));
+
+    // Perform the updates
     transaction.update(kidRef, {
       coinsBalance: increment(-giftData.coinCost),
     });
@@ -254,6 +276,7 @@ export const redeemGift = async (kidId: string, giftId: string) => {
       stock: increment(-1),
     });
 
+    // Create a redemption record in subcollection
     transaction.set(redemptionRef, {
       id: redemptionRef.id,
       kidId: kidId,
@@ -264,13 +287,26 @@ export const redeemGift = async (kidId: string, giftId: string) => {
       coinCost: giftData.coinCost,
       timestamp: serverTimestamp(),
     });
+
+    // Create a top-level activity record
+    transaction.set(activityRef, {
+      id: activityRef.id,
+      type: 'redemption',
+      kidId: kidId,
+      kidName: `${kidData.firstName} ${kidData.lastName}`,
+      photoUrl: kidData.photoUrl,
+      details: `Redeemed ${giftData.name}`,
+      timestamp: serverTimestamp(),
+    });
   }).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: `Transaction on ${kidRef.path} and ${giftRef.path}`,
         operation: 'update',
-        requestResourceData: { /* data for debugging */ },
+        requestResourceData: {
+          /* data for debugging */
+        },
       })
     );
     throw serverError;
@@ -306,49 +342,22 @@ export const getVolunteers = async (): Promise<Volunteer[]> => {
 
 export const getRecentActivities = async (): Promise<RecentActivity[]> => {
   try {
-    const attendanceQuery = query(collectionGroup(db, 'attendances'), orderBy('timestamp', 'desc'), limit(5));
-    const redemptionQuery = query(collectionGroup(db, 'redemptions'), orderBy('timestamp', 'desc'), limit(5));
-
-    const [attendanceSnapshot, redemptionSnapshot] = await Promise.all([
-      getDocs(attendanceQuery),
-      getDocs(redemptionQuery),
-    ]);
+    const activitiesCol = collection(db, 'activities');
+    const q = query(activitiesCol, orderBy('timestamp', 'desc'), limit(5));
+    const activitiesSnapshot = await getDocs(q);
 
     const activities: any[] = [];
-
-    attendanceSnapshot.forEach((doc) => {
+    activitiesSnapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.timestamp) {
+      if (data.timestamp) { // ensure timestamp exists before processing
         activities.push({
           id: doc.id,
-          type: 'check-in',
-          kidName: data.kidName,
-          details: `Checked in`,
-          timestamp: data.timestamp,
-          icon: UserCheck,
-          photoUrl: data.photoUrl,
+          ...data,
         });
       }
     });
 
-    redemptionSnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.timestamp) {
-        activities.push({
-          id: doc.id,
-          type: 'redemption',
-          kidName: data.kidName,
-          details: `Redeemed ${data.giftName}`,
-          timestamp: data.timestamp,
-          icon: GiftIcon,
-          photoUrl: data.photoUrl,
-        });
-      }
-    });
-
-    activities.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
-
-    const formattedActivities = activities.slice(0, 5).map((activity) => {
+    const formattedActivities = activities.map((activity) => {
       const date = activity.timestamp.toDate();
       const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
       let interval = seconds / 31536000;
@@ -379,13 +388,14 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
     console.error('Error fetching recent activities:', error);
     if (error && error.code === 'permission-denied') {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'attendances or redemptions collection group',
+            path: 'activities',
             operation: 'list'
         }));
     }
     return [];
   }
 };
+
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
@@ -402,7 +412,11 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const attendanceQuery = query(collectionGroup(db, 'attendances'), where('timestamp', '>=', startOfToday));
+    const attendanceQuery = query(
+      collection(db, 'activities'), 
+      where('type', '==', 'check-in'),
+      where('timestamp', '>=', startOfToday)
+    );
     const todayAttendanceSnapshot = await getDocs(attendanceQuery);
     const kidsCheckedIn = todayAttendanceSnapshot.size;
 
@@ -429,7 +443,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
-          path: 'kids or gifts collection or attendance collection group',
+          path: 'kids, gifts, or activities collection',
           operation: 'list',
         })
       );
@@ -444,5 +458,3 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     return emptyStats;
   }
 };
-
-    

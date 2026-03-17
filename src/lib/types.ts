@@ -44,7 +44,6 @@ export type RecentActivity = {
   kidName: string;
   details: string;
   timestamp: string;
-  icon: React.ElementType;
   photoUrl?: string;
 };
 
