@@ -21,29 +21,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  Dialog![CDATA['use client';
-
-import { useState, useEffect, useRef } from 'react';
-import { PageHeader } from '@/components/page-header';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import {
-  Search,
-  UserCheck,
-  X,
-  QrCode,
-  UserPlus,
-  CameraOff,
-  Coins,
-} from 'lucide-react';
-import { getKids, getRecentActivities, checkInKid } from '@/lib/data';
-import { Kid } from '@/lib/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
@@ -51,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
 
-export default function CheckInPage() {
+export default function HomePage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Kid[]>([]);
@@ -113,12 +90,12 @@ export default function CheckInPage() {
             });
           }
         } else {
-            setHasCameraPermission(false);
-            toast({
-                variant: 'destructive',
-                title: 'Camera Not Supported',
-                description: 'Your browser does not support camera access.',
-            });
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Not Supported',
+            description: 'Your browser does not support camera access.',
+          });
         }
       };
 
@@ -138,15 +115,11 @@ export default function CheckInPage() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (showSuccess) {
-      // Set a timer to automatically close the overlay
       timer = setTimeout(() => {
         setShowSuccess(false);
         setKidForSuccessOverlay(null);
       }, 8000);
     }
-    
-    // Cleanup function to clear the timeout if the component unmounts
-    // or if the effect re-runs before the timer finishes.
     return () => {
       if (timer) clearTimeout(timer);
     };
@@ -206,7 +179,6 @@ export default function CheckInPage() {
     }
   };
 
-
   const handleSimulateScan = () => {
     if (allKids.length > 0) {
       const randomKid = allKids[Math.floor(Math.random() * allKids.length)];
@@ -226,7 +198,7 @@ export default function CheckInPage() {
           title="Sunday Check-In"
           description="Search for a child or use one of the quick options below."
         >
-          <Button asChild>
+          <Button asChild className="hidden sm:flex">
             <Link href="/kids/new">
               <UserPlus />
               Register New Kid
@@ -235,74 +207,84 @@ export default function CheckInPage() {
         </PageHeader>
 
         <div className="mx-auto w-full max-w-3xl">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+          <div className="flex flex-col items-center gap-2 sm:flex-row">
+            <div className="relative w-full flex-1">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Search by name or parent phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full rounded-full bg-card py-8 pl-14 pr-28 text-lg"
+                className="h-14 w-full rounded-full bg-card pl-12 pr-28 text-base"
               />
               <Button
                 onClick={handleSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-6 py-6 text-base"
+                className="absolute right-2 top-1/2 h-10 -translate-y-1/2 rounded-full px-6 text-sm"
               >
                 Search
               </Button>
             </div>
-            <Dialog open={isScannerOpen} onOpenChange={setScannerOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-auto w-20 flex-col gap-1 rounded-2xl"
-                >
-                  <QrCode className="h-8 w-8" />
-                  <span className="text-xs">Scan</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Scan Barcode</DialogTitle>
-                </DialogHeader>
-                <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
-                  <video
-                    ref={videoRef}
-                    className="h-full w-full object-cover"
-                    autoPlay
-                    playsInline
-                    muted
-                  />
-                  <div className="absolute inset-0 z-10 flex items-center justify-center">
-                    <div className="h-2/3 w-2/3 rounded-lg border-4 border-dashed border-primary" />
-                  </div>
-                  {hasCameraPermission === false && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 p-4 text-center text-white">
-                      <CameraOff className="mb-4 h-16 w-16" />
-                      <h3 className="text-2xl font-bold">
-                        Camera Access Required
-                      </h3>
-                      <p>
-                        Please allow camera access in your browser settings to
-                        use the scanner.
-                      </p>
+            <div className="flex w-full gap-2 sm:w-auto">
+              <Dialog open={isScannerOpen} onOpenChange={setScannerOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-14 w-full flex-col gap-1 rounded-2xl sm:w-20"
+                  >
+                    <QrCode className="h-6 w-6" />
+                    <span className="text-xs">Scan</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Scan Barcode</DialogTitle>
+                  </DialogHeader>
+                  <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
+                    <video
+                      ref={videoRef}
+                      className="h-full w-full object-cover"
+                      autoPlay
+                      playsInline
+                      muted
+                    />
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                      <div className="h-2/3 w-2/3 rounded-lg border-4 border-dashed border-primary" />
                     </div>
-                  )}
-                </div>
-                <Button onClick={handleSimulateScan} className="w-full">
-                  Simulate Scan & Check In
-                </Button>
-              </DialogContent>
-            </Dialog>
+                    {hasCameraPermission === false && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 p-4 text-center text-white">
+                        <CameraOff className="mb-4 h-16 w-16" />
+                        <h3 className="text-2xl font-bold">
+                          Camera Access Required
+                        </h3>
+                        <p>
+                          Please allow camera access in your browser settings to
+                          use the scanner.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <Button onClick={handleSimulateScan} className="w-full">
+                    Simulate Scan & Check In
+                  </Button>
+                </DialogContent>
+              </Dialog>
+              <Button
+                asChild
+                className="h-14 flex-1 flex-col gap-1 rounded-2xl sm:hidden"
+              >
+                <Link href="/kids/new">
+                  <UserPlus className="h-6 w-6" />
+                  <span className="text-xs">Register</span>
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
         {searchResults.length > 0 && (
           <div className="mx-auto w-full max-w-3xl space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Search Results</h2>
               <Button
                 variant="ghost"
@@ -398,11 +380,14 @@ export default function CheckInPage() {
       </div>
 
       {showSuccess && kidForSuccessOverlay && (
-        <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-background/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
           <Confetti />
-          <div className="relative flex flex-col items-center rounded-3xl bg-background/80 p-12 text-center backdrop-blur-lg">
-            <Avatar className="h-40 w-40 border-8 border-background shadow-lg">
-              <AvatarImage src={kidForSuccessOverlay.photoUrl} alt={kidForSuccessOverlay.firstName} />
+          <div className="relative flex flex-col items-center rounded-3xl bg-card/80 p-8 text-center backdrop-blur-lg md:p-12">
+            <Avatar className="h-32 w-32 border-8 border-background shadow-lg md:h-40 md:w-40">
+              <AvatarImage
+                src={kidForSuccessOverlay.photoUrl}
+                alt={kidForSuccessOverlay.firstName}
+              />
               <AvatarFallback className="text-6xl">
                 {kidForSuccessOverlay.firstName.charAt(0)}
                 {kidForSuccessOverlay.lastName.charAt(0)}
@@ -415,7 +400,9 @@ export default function CheckInPage() {
             </div>
             <div className="mt-4 flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-primary">
               <Coins className="size-5 text-primary" />
-              <span className="text-primary-foreground/90">{kidForSuccessOverlay.coinsBalance} Coins Total</span>
+              <span className="text-primary-foreground/90">
+                {kidForSuccessOverlay.coinsBalance} Coins Total
+              </span>
             </div>
           </div>
         </div>

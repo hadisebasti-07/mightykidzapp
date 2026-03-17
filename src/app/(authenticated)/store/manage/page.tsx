@@ -59,7 +59,7 @@ export default function ManageGiftsPage() {
         <TableCell><Skeleton className="size-10 rounded-md" /></TableCell>
         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
         <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-        <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+        <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-12" /></TableCell>
         <TableCell><Skeleton className="h-5 w-20" /></TableCell>
         <TableCell><Skeleton className="h-8 w-8" /></TableCell>
       </TableRow>
@@ -91,7 +91,7 @@ export default function ManageGiftsPage() {
                                     <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Cost</TableHead>
-                                    <TableHead>Stock</TableHead>
+                                    <TableHead className="hidden md:table-cell">Stock</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead><span className="sr-only">Actions</span></TableHead>
                                 </TableRow>
@@ -110,9 +110,9 @@ export default function ManageGiftsPage() {
                                                 width="64"
                                             />
                                         </TableCell>
-                                        <TableCell className="font-medium">{gift.name}</TableCell>
+                                        <TableCell className="font-medium min-w-[150px]">{gift.name}</TableCell>
                                         <TableCell>{gift.coinCost}</TableCell>
-                                        <TableCell>{gift.stock}</TableCell>
+                                        <TableCell className="hidden md:table-cell">{gift.stock}</TableCell>
                                         <TableCell>
                                             <Badge variant={gift.active ? 'default' : 'secondary'}>
                                                 {gift.active ? 'Active' : 'Inactive'}

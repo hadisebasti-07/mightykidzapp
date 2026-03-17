@@ -29,9 +29,7 @@ export function PageHeader({
         )}
         <div className="mt-1 h-1 w-12 rounded-full bg-primary" />
       </div>
-      {children && (
-        <div className="ml-auto flex items-center gap-2">{children}</div>
-      )}
+      {children && <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   );
 }

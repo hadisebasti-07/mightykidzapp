@@ -33,7 +33,7 @@ export default function AuthenticatedLayout({
       <div className="flex h-full min-h-svh flex-1 flex-col">
         <Header />
         <SidebarInset>
-          <main className="flex-1 p-4 md:p-6 lg:p-8">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8">
             {children}
           </main>
         </SidebarInset>

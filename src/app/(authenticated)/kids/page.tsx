@@ -202,7 +202,7 @@ export default function KidsPage() {
               <X className="mr-2" /> Clear Filter
             </Button>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
               <Button variant="outline" onClick={handleExport}>
                 <Download />
                 Export All
@@ -219,7 +219,7 @@ export default function KidsPage() {
         </PageHeader>
 
         {!filter && (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -227,7 +227,7 @@ export default function KidsPage() {
                 className="py-6 pl-10 text-base"
               />
             </div>
-            <Button variant="outline" size="lg" className="h-14">
+            <Button variant="outline" size="lg" className="h-14 w-full sm:w-auto">
               <SlidersHorizontal />
               Filters
             </Button>
