@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -13,7 +14,6 @@ import {
   CalendarCheck,
   Cake,
   Gift,
-  ArrowUp,
   Activity,
   UserCheck,
 } from 'lucide-react';
@@ -21,9 +21,36 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { AttendanceChart } from '@/components/dashboard/attendance-chart';
 import { RecentActivityList } from '@/components/dashboard/recent-activity-list';
 import { getDashboardStats } from '@/lib/data';
+import type { DashboardStats } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+
+const StatCardSkeleton = () => (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="size-10 rounded-xl" />
+      </CardHeader>
+      <CardContent>
+          <Skeleton className="h-10 w-16 mb-2" />
+          <Skeleton className="h-4 w-28" />
+      </CardContent>
+    </Card>
+);
 
 export default function DashboardPage() {
-  const stats = getDashboardStats();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      const statsData = await getDashboardStats();
+      setStats(statsData);
+      setLoading(false);
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div className="flex flex-col gap-8">
@@ -32,37 +59,45 @@ export default function DashboardPage() {
         description="A real-time overview of today's ministry activities."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Kids Checked In"
-          value={stats.kidsCheckedIn.toString()}
-          icon={Users}
-          iconColor="text-primary-foreground"
-          iconBg="bg-primary"
-          change="+5 this week"
-          changeColor="text-emerald-600"
-          changeIcon={ArrowUp}
-        />
-        <StatCard
-          title="Volunteers on Duty"
-          value={stats.volunteersOnDuty.toString()}
-          icon={CalendarCheck}
-          iconColor="text-sky-600"
-          iconBg="bg-sky-100"
-        />
-        <StatCard
-          title="Today's Birthdays"
-          value={stats.todaysBirthdays.toString()}
-          icon={Cake}
-          iconColor="text-pink-600"
-          iconBg="bg-pink-100"
-        />
-        <StatCard
-          title="Gifts Redeemed"
-          value={stats.giftsRedeemed.toString()}
-          icon={Gift}
-          iconColor="text-amber-700"
-          iconBg="bg-amber-100"
-        />
+        {loading || !stats ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard
+              title="Kids Checked In"
+              value={stats.kidsCheckedIn.toString()}
+              icon={Users}
+              iconColor="text-primary-foreground"
+              iconBg="bg-primary"
+            />
+            <StatCard
+              title="Volunteers on Duty"
+              value={stats.volunteersOnDuty.toString()}
+              icon={CalendarCheck}
+              iconColor="text-sky-600"
+              iconBg="bg-sky-100"
+            />
+            <StatCard
+              title="Today's Birthdays"
+              value={stats.todaysBirthdays.toString()}
+              icon={Cake}
+              iconColor="text-pink-600"
+              iconBg="bg-pink-100"
+            />
+            <StatCard
+              title="Gifts Redeemed Today"
+              value={stats.giftsRedeemed.toString()}
+              icon={Gift}
+              iconColor="text-amber-700"
+              iconBg="bg-amber-100"
+            />
+          </>
+        )}
       </div>
       <div className="grid gap-8 lg:grid-cols-3">
         <Card className="border-0 shadow-sm lg:col-span-2">

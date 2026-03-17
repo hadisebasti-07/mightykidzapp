@@ -35,6 +35,7 @@ export type Volunteer = {
   role: 'Admin' | 'Volunteer' | 'Leader';
   availability?: string[];
   skills?: string[];
+  createdAt: string;
 };
 
 export type RecentActivity = {
@@ -44,6 +45,7 @@ export type RecentActivity = {
   details: string;
   timestamp: string;
   icon: React.ElementType;
+  photoUrl?: string;
 };
 
 export type DashboardStats = {

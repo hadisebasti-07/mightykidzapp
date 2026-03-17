@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { addVolunteer } from '@/lib/data';
 
 const volunteerFormSchema = z.object({
   name: z.string().min(2, {
@@ -53,14 +54,21 @@ export function VolunteerForm() {
     mode: 'onChange',
   });
 
-  function onSubmit(data: VolunteerFormValues) {
-    toast({
-      title: 'Volunteer Profile Created',
-      description: `The profile for ${data.name} has been created.`,
-    });
-    // In a real app, you would save the data to a database here.
-    console.log('New volunteer data:', data);
-    router.push('/volunteers');
+  async function onSubmit(data: VolunteerFormValues) {
+    try {
+      await addVolunteer(data);
+      toast({
+        title: 'Volunteer Profile Created',
+        description: `The profile for ${data.name} has been created.`,
+      });
+      router.push('/volunteers');
+    } catch (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Creation Failed',
+        description: 'Could not create the volunteer profile.',
+      });
+    }
   }
 
   return (
