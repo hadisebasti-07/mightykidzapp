@@ -319,7 +319,7 @@ export default function HomePage() {
                 </div>
                 <Button
                   size="lg"
-                  className="h-14 px-8 text-lg"
+                  className="h-12 flex-shrink-0 px-6 text-base sm:h-14"
                   onClick={() => handleCheckIn(kid)}
                 >
                   <UserCheck className="mr-2 h-5 w-5" />
@@ -360,7 +360,7 @@ export default function HomePage() {
                       </div>
                       <Button
                         size="lg"
-                        className="h-14 px-8 text-lg"
+                        className="h-12 flex-shrink-0 px-6 text-base sm:h-14"
                         onClick={() => handleCheckIn(kid)}
                       >
                         <UserCheck className="mr-2 h-5 w-5" />

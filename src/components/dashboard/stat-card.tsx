@@ -44,7 +44,7 @@ export function StatCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="break-words text-3xl font-bold tracking-tight sm:text-4xl">{value}</div>
+        <div className="break-words text-3xl font-bold tracking-tight md:text-4xl">{value}</div>
         {change && (
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
             {ChangeIcon && (
