@@ -334,7 +334,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         const giftsSnapshot = await getDocs(collection(db, "gifts"));
         
         const today = new Date();
-        const currentMonth = today.getUTCMonth() + 1;
+        const currentMonth = today.getMonth() + 1;
 
         const birthdayQuery = query(collection(db, 'kids'), where('birthdayMonth', '==', currentMonth));
         const monthlyBirthdaySnapshot = await getDocs(birthdayQuery);
