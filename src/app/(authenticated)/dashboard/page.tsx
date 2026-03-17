@@ -77,6 +77,7 @@ export default function DashboardPage() {
               icon={Users}
               iconColor="text-blue-600"
               iconBg="bg-blue-100"
+              href="/kids"
             />
             <StatCard
               title="Checked In Today"
@@ -84,6 +85,7 @@ export default function DashboardPage() {
               icon={UserCheck}
               iconColor="text-primary-foreground"
               iconBg="bg-primary"
+              href="/"
             />
             <StatCard
               title="This Month's Birthdays"
@@ -91,6 +93,7 @@ export default function DashboardPage() {
               icon={Cake}
               iconColor="text-pink-600"
               iconBg="bg-pink-100"
+              href="/kids"
             />
             <StatCard
               title="Total Gift Stock"
@@ -98,6 +101,7 @@ export default function DashboardPage() {
               icon={Gift}
               iconColor="text-amber-700"
               iconBg="bg-amber-100"
+              href="/store/manage"
             />
           </>
         )}

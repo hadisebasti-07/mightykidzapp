@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +11,7 @@ type StatCardProps = {
   change?: string;
   changeColor?: string;
   changeIcon?: React.ElementType;
+  href?: string;
 };
 
 export function StatCard({
@@ -21,9 +23,13 @@ export function StatCard({
   change,
   changeColor,
   changeIcon: ChangeIcon,
+  href,
 }: StatCardProps) {
-  return (
-    <Card className="border-0 shadow-sm">
+  const cardContent = (
+    <Card className={cn(
+        "border-0 shadow-sm",
+        href && "transition-all hover:shadow-md hover:-translate-y-0.5"
+    )}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -50,4 +56,10 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{cardContent}</Link>;
+  }
+
+  return cardContent;
 }
