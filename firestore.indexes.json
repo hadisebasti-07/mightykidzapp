@@ -11,6 +11,16 @@
       ]
     },
     {
+      "collectionGroup": "attendances",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "timestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "redemptions",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
