@@ -121,7 +121,10 @@ service cloud.firestore {
      * @principle Secures the role-management system by disabling all client-side writes.
      */
     match /admins/{adminUid} {
-      allow get: if isAdmin();
+      // Any signed-in user can check for the existence of an admin doc.
+      // This is required for the `isAdmin()` function to work without circular dependencies.
+      allow get: if isSignedIn();
+      // Only existing admins can see the full list of other admins.
       allow list: if isAdmin();
       allow create: if false;
       allow update: if false;

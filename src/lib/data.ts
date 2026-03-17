@@ -434,6 +434,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         })
       );
     }
+    // Return empty stats on error to prevent crashes
     const emptyStats: DashboardStats = {
       totalKids: 0,
       kidsCheckedIn: 0,
