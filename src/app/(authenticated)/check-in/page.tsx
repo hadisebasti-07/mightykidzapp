@@ -265,11 +265,11 @@ export default function HomePage() {
                     <span className="text-xs">Scan</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-4xl">
                   <DialogHeader>
                     <DialogTitle>Scan Barcode</DialogTitle>
                   </DialogHeader>
-                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
                     <video
                       ref={videoRef}
                       className="h-full w-full object-contain"
