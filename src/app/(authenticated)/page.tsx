@@ -41,6 +41,7 @@ export default function HomePage() {
   const [showSuccess, setShowSuccess] = useState(false);
   
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const [readerNode, setReaderNode] = useState<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -95,8 +96,8 @@ export default function HomePage() {
   }, [toast]);
 
   useEffect(() => {
-    if (isScannerOpen) {
-      const html5QrCode = new Html5Qrcode("reader");
+    if (readerNode) {
+      const html5QrCode = new Html5Qrcode(readerNode.id);
       html5QrCodeRef.current = html5QrCode;
 
       const config = {
@@ -106,7 +107,7 @@ export default function HomePage() {
       };
 
       const qrCodeSuccessCallback = (decodedText: string) => {
-         if (isScannerOpen) {
+        if (isScannerOpen) {
           setScannerOpen(false);
           const kid = allKids.find((k) => k.id === decodedText);
           if (kid) {
@@ -132,17 +133,19 @@ export default function HomePage() {
           title: 'Camera Error',
           description: 'Could not start camera. Please check permissions.',
         });
+        setScannerOpen(false);
       });
-    }
 
-    return () => {
-      if (html5QrCodeRef.current?.isScanning) {
-        html5QrCodeRef.current.stop().catch(err => {
-          console.error("Error stopping the scanner.", err);
-        });
-      }
-    };
-  }, [isScannerOpen, allKids, handleCheckIn, toast]);
+      return () => {
+        if (html5QrCodeRef.current?.isScanning) {
+          html5QrCodeRef.current.stop().catch(err => {
+            console.error("Error stopping the scanner.", err);
+          });
+        }
+      };
+    }
+  }, [readerNode, allKids, handleCheckIn, isScannerOpen, toast]);
+
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -221,7 +224,7 @@ export default function HomePage() {
                     <DialogTitle>Scan Barcode</DialogTitle>
                     <DialogDescription>Point your camera at a barcode to check-in a kid.</DialogDescription>
                   </DialogHeader>
-                  <div id="reader" className="w-full"/>
+                  {isScannerOpen && <div id="reader" ref={setReaderNode} className="w-full"/>}
                 </DialogContent>
               </Dialog>
               <Button
