@@ -27,7 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
-import { Html5Qrcode } from "html5-qrcode";
+import { BrowserMultiFormatReader, NotFoundException, BarcodeFormat, DecodeHintType } from '@zxing/library';
 
 export default function HomePage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -45,16 +45,14 @@ export default function HomePage() {
   useEffect(() => {
     allKidsRef.current = allKids;
   }, [allKids]);
-
-  const readerRef = useRef<HTMLDivElement | null>(null);
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-  const readerId = "home-page-scanner";
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
     setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
     
     if (fromScanner) {
-      setScannerOpen(false); // Close scanner immediately on successful scan
+      setScannerOpen(false);
       setTimeout(() => setShowSuccess(true), 300);
     } else {
       setShowSuccess(true);
@@ -78,102 +76,63 @@ export default function HomePage() {
     }
   }, [toast]);
   
-  const stopScanner = useCallback(() => {
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      html5QrCodeRef.current.stop().catch((err) => {
-        if (err.name !== 'NotFoundError') {
-           console.error("Error stopping the scanner:", err);
-        }
+  const processScan = useCallback((kidId: string) => {
+    const kid = allKidsRef.current.find((k) => k.id === kidId);
+    if (kid) {
+      handleCheckIn(kid, true);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Kid Not Found',
+        description: `No kid record found for ID: ${kidId}`,
       });
-      html5QrCodeRef.current = null;
+      setScannerOpen(false);
     }
-  }, []);
+  }, [handleCheckIn, toast]);
 
-  const qrCodeSuccessCallback = useCallback((decodedText: string) => {
-      stopScanner();
-      const kid = allKidsRef.current.find((k) => k.id === decodedText);
-      if (kid) {
-        handleCheckIn(kid, true);
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Kid Not Found',
-          description: `No kid record found for ID: ${decodedText}`,
-        });
-        setScannerOpen(false);
-      }
-    }, [handleCheckIn, stopScanner, toast]);
+  useEffect(() => {
+    let codeReader: BrowserMultiFormatReader | null = null;
+    if (isScannerOpen && videoRef.current) {
+        const hints = new Map();
+        const formats = [BarcodeFormat.CODE_128, BarcodeFormat.CODE_39];
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+        
+        codeReader = new BrowserMultiFormatReader(hints);
 
+        codeReader.listVideoInputDevices()
+          .then((videoInputDevices) => {
+            const rearCamera = videoInputDevices.find(d => /back|rear|environment/i.test(d.label));
+            const deviceId = rearCamera ? rearCamera.deviceId : videoInputDevices[0]?.deviceId;
 
-  const startScanner = useCallback(() => {
-    if (!readerRef.current) {
-        console.warn("Scanner element not ready.");
-        return;
-    }
-    
-    const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true,
-      },
-    };
-
-    const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false });
-    html5QrCodeRef.current = html5QrCode;
-    
-    Html5Qrcode.getCameras()
-      .then((cameras) => {
-        if (cameras && cameras.length) {
-          const backCamera = cameras.find((camera) => /back|rear|environment/i.test(camera.label));
-          const cameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id;
-          
-          html5QrCode.start(
-            { deviceId: { exact: cameraId } },
-            config,
-            qrCodeSuccessCallback,
-            undefined
-          ).catch((err) => {
-              console.error("Scanner start error:", err);
-              toast({
-                  variant: 'destructive',
-                  title: 'Scanner Error',
-                  description: `Could not start camera. Please ensure permissions are allowed.`,
+            if (videoRef.current) {
+              codeReader?.decodeFromVideoDevice(deviceId, videoRef.current, (result, err) => {
+                if (result) {
+                  // Once a result is found, stop the reader and process the scan
+                  codeReader?.reset();
+                  processScan(result.getText());
+                }
+                if (err && !(err instanceof NotFoundException)) {
+                  console.error('Barcode scan error:', err);
+                }
               });
-              setScannerOpen(false);
-          });
-        } else {
-          throw new Error("No cameras found.");
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to get or start camera:", err);
-        // Fallback to simpler method
-        html5QrCode.start(
-            { facingMode: { exact: "environment" } },
-            config,
-            qrCodeSuccessCallback,
-            undefined
-          ).catch(finalErr => {
-            console.error("Final scanner start attempt failed:", finalErr);
-             toast({
+            }
+          })
+          .catch((err) => {
+            console.error('Camera enumeration error:', err);
+            toast({
                 variant: 'destructive',
                 title: 'Camera Error',
-                description: `Could not start the back camera. Please check permissions.`,
+                description: 'Could not access camera. Please check permissions.',
             });
             setScannerOpen(false);
           });
-      });
-  }, [qrCodeSuccessCallback, toast]);
-
-  useEffect(() => {
-    if (isScannerOpen) {
-      const timer = setTimeout(startScanner, 100); 
-      return () => clearTimeout(timer);
-    } else {
-      stopScanner();
     }
-  }, [isScannerOpen, startScanner, stopScanner]);
+
+    return () => {
+      // Ensure the reader is reset on cleanup
+      codeReader?.reset();
+    };
+  }, [isScannerOpen, processScan, toast]);
 
   useEffect(() => {
     const fetchKidsAndActivities = async () => {
@@ -272,9 +231,7 @@ export default function HomePage() {
                     <DialogTitle>Scan Barcode</DialogTitle>
                     <DialogDescription>Point your camera at a barcode to check-in a kid.</DialogDescription>
                   </DialogHeader>
-                  <div className="overflow-hidden rounded-lg">
-                    <div ref={readerRef} id={readerId} />
-                  </div>
+                  <video ref={videoRef} className="w-full rounded-lg border bg-muted" playsInline />
                 </DialogContent>
               </Dialog>
               <Button
