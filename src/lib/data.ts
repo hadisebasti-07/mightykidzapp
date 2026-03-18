@@ -29,6 +29,7 @@ import { FirestorePermissionError } from './firebase/errors';
 import { z } from 'zod';
 
 export const addKid = async (data: KidFormValues) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const birthDate = data.dateOfBirth; // This is a Date object
   const dateString = format(birthDate, 'yyyy-MM-dd'); // Use date-fns to avoid timezone issues
   
@@ -53,7 +54,7 @@ export const addKid = async (data: KidFormValues) => {
     houseColor: data.houseColor || '',
   };
 
-  setDoc(newKidRef, newKidData).catch((serverError) => {
+  await setDoc(newKidRef, newKidData).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -62,10 +63,12 @@ export const addKid = async (data: KidFormValues) => {
         requestResourceData: newKidData,
       })
     );
+    throw serverError;
   });
 };
 
 export const importKids = async (csvData: string) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const batch = writeBatch(db);
   const lines = csvData.trim().split('\n');
   let successCount = 0;
@@ -141,25 +144,51 @@ export const importKids = async (csvData: string) => {
 };
 
 export const getKids = async (): Promise<Kid[]> => {
-  const kidsCol = collection(db, 'kids');
-  const q = query(kidsCol, orderBy('createdAt', 'desc'));
-  const kidsSnapshot = await getDocs(q);
-  const kidsList = kidsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Kid));
-  return kidsList;
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
+  try {
+    const kidsCol = collection(db, 'kids');
+    const q = query(kidsCol, orderBy('createdAt', 'desc'));
+    const kidsSnapshot = await getDocs(q);
+    const kidsList = kidsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Kid));
+    return kidsList;
+  } catch (error: any) {
+    console.error('[Data] Error fetching kids:', error);
+    if (error && error.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'kids',
+            operation: 'list'
+        }));
+    }
+    return [];
+  }
 };
 
 export const getKidById = async (kidId: string): Promise<Kid | null> => {
-  const kidRef = doc(db, 'kids', kidId);
-  const kidSnap = await getDoc(kidRef);
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
+  try {
+    const kidRef = doc(db, 'kids', kidId);
+    const kidSnap = await getDoc(kidRef);
 
-  if (kidSnap.exists()) {
-    return { id: kidSnap.id, ...kidSnap.data() } as Kid;
-  } else {
+    if (kidSnap.exists()) {
+      return { id: kidSnap.id, ...kidSnap.data() } as Kid;
+    } else {
+      return null;
+    }
+  } catch (error: any) {
+    console.error(`[Data] Error fetching kid by id ${kidId}:`, error);
+    if (error && error.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `kids/${kidId}`,
+            operation: 'get'
+        }));
+    }
     return null;
   }
 };
 
+
 export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const kidRef = doc(db, 'kids', kidId);
   
   const updateData: any = { ...data };
@@ -175,12 +204,11 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
   }
   delete updateData.photoDataUrl;
 
-  // Sanitize object to remove any keys with undefined values before sending to Firestore
   const sanitizedData = Object.fromEntries(
     Object.entries(updateData).filter(([_, v]) => v !== undefined)
   );
 
-  updateDoc(kidRef, sanitizedData).catch((serverError) => {
+  await updateDoc(kidRef, sanitizedData).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -189,12 +217,14 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
         requestResourceData: sanitizedData,
       })
     );
+    throw serverError;
   });
 };
 
 export const deleteKid = async (kidId: string) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const kidRef = doc(db, 'kids', kidId);
-  deleteDoc(kidRef).catch((serverError) => {
+  await deleteDoc(kidRef).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -202,10 +232,12 @@ export const deleteKid = async (kidId: string) => {
         operation: 'delete',
       })
     );
+    throw serverError;
   });
 };
 
 export const checkInKid = async (kidId: string) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const kidRef = doc(db, 'kids', kidId);
   
   return runTransaction(db, async (transaction) => {
@@ -215,17 +247,14 @@ export const checkInKid = async (kidId: string) => {
     }
     const kidData = kidSnap.data();
     
-    // Define refs for all documents to be written
     const attendanceRef = doc(collection(db, 'kids', kidId, 'attendances'));
     const activityRef = doc(collection(db, 'activities'));
 
-    // Kid update
     transaction.update(kidRef, {
       coinsBalance: increment(10),
       totalAttendance: increment(1),
     });
 
-    // Attendance sub-collection record (for per-kid history)
     transaction.set(attendanceRef, {
       id: attendanceRef.id,
       kidId: kidId,
@@ -234,7 +263,6 @@ export const checkInKid = async (kidId: string) => {
       timestamp: serverTimestamp(),
     });
 
-    // Top-level activity record for fast queries
     transaction.set(activityRef, {
         id: activityRef.id,
         type: 'check-in',
@@ -262,23 +290,48 @@ export const checkInKid = async (kidId: string) => {
 };
 
 export const getGifts = async (): Promise<Gift[]> => {
-  const giftsCol = collection(db, 'gifts');
-  const q = query(giftsCol, orderBy('createdAt', 'desc'));
-  const giftsSnapshot = await getDocs(q);
-  const giftsList = giftsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Gift));
-  return giftsList;
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
+  try {
+    const giftsCol = collection(db, 'gifts');
+    const q = query(giftsCol, orderBy('createdAt', 'desc'));
+    const giftsSnapshot = await getDocs(q);
+    const giftsList = giftsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Gift));
+    return giftsList;
+  } catch (error: any) {
+    console.error('[Data] Error fetching gifts:', error);
+    if (error && error.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'gifts',
+          operation: 'list'
+      }));
+    }
+    return [];
+  }
 };
 
 export const getGiftById = async (giftId: string): Promise<Gift | null> => {
-  const giftRef = doc(db, 'gifts', giftId);
-  const giftSnap = await getDoc(giftRef);
-  if (giftSnap.exists()) {
-    return { id: giftSnap.id, ...giftSnap.data() } as Gift;
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
+  try {
+    const giftRef = doc(db, 'gifts', giftId);
+    const giftSnap = await getDoc(giftRef);
+    if (giftSnap.exists()) {
+      return { id: giftSnap.id, ...giftSnap.data() } as Gift;
+    }
+    return null;
+  } catch (error: any) {
+    console.error(`[Data] Error fetching gift by id ${giftId}:`, error);
+    if (error && error.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `gifts/${giftId}`,
+            operation: 'get'
+        }));
+    }
+    return null;
   }
-  return null;
 };
 
 export const addGift = async (data: GiftFormValues) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const newGiftRef = doc(collection(db, 'gifts'));
   const newGiftData = {
     ...data,
@@ -288,7 +341,7 @@ export const addGift = async (data: GiftFormValues) => {
   };
   delete (newGiftData as any).photoDataUrl;
 
-  setDoc(newGiftRef, newGiftData).catch((serverError) => {
+  await setDoc(newGiftRef, newGiftData).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -297,10 +350,12 @@ export const addGift = async (data: GiftFormValues) => {
         requestResourceData: newGiftData,
       })
     );
+    throw serverError;
   });
 };
 
 export const updateGift = async (giftId: string, data: Partial<GiftFormValues>) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const giftRef = doc(db, 'gifts', giftId);
   const updateData: any = { ...data };
   if (data.photoDataUrl) {
@@ -308,7 +363,7 @@ export const updateGift = async (giftId: string, data: Partial<GiftFormValues>) 
   }
   delete updateData.photoDataUrl;
 
-  updateDoc(giftRef, updateData).catch((serverError) => {
+  await updateDoc(giftRef, updateData).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -317,12 +372,14 @@ export const updateGift = async (giftId: string, data: Partial<GiftFormValues>) 
         requestResourceData: updateData,
       })
     );
+    throw serverError;
   });
 };
 
 export const deleteGift = async (giftId: string) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const giftRef = doc(db, 'gifts', giftId);
-  deleteDoc(giftRef).catch((serverError) => {
+  await deleteDoc(giftRef).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -330,10 +387,12 @@ export const deleteGift = async (giftId: string) => {
         operation: 'delete',
       })
     );
+    throw serverError;
   });
 };
 
 export const redeemGift = async (kidId: string, giftId: string) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const kidRef = doc(db, 'kids', kidId);
   const giftRef = doc(db, 'gifts', giftId);
 
@@ -359,7 +418,6 @@ export const redeemGift = async (kidId: string, giftId: string) => {
     const redemptionRef = doc(collection(db, 'kids', kidId, 'redemptions'));
     const activityRef = doc(collection(db, 'activities'));
 
-    // Perform the updates
     transaction.update(kidRef, {
       coinsBalance: increment(-giftData.coinCost),
     });
@@ -367,7 +425,6 @@ export const redeemGift = async (kidId: string, giftId: string) => {
       stock: increment(-1),
     });
 
-    // Create a redemption record in subcollection
     transaction.set(redemptionRef, {
       id: redemptionRef.id,
       kidId: kidId,
@@ -379,7 +436,6 @@ export const redeemGift = async (kidId: string, giftId: string) => {
       timestamp: serverTimestamp(),
     });
 
-    // Create a top-level activity record
     transaction.set(activityRef, {
       id: activityRef.id,
       type: 'redemption',
@@ -396,7 +452,6 @@ export const redeemGift = async (kidId: string, giftId: string) => {
         path: `Transaction on ${kidRef.path} and ${giftRef.path}`,
         operation: 'update',
         requestResourceData: {
-          /* data for debugging */
         },
       })
     );
@@ -405,13 +460,14 @@ export const redeemGift = async (kidId: string, giftId: string) => {
 };
 
 export const addVolunteer = async (data: any) => {
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   const newVolunteerRef = doc(collection(db, 'volunteers'));
   const newVolunteerData = {
     ...data,
     id: newVolunteerRef.id,
     createdAt: new Date().toISOString(),
   };
-  setDoc(newVolunteerRef, newVolunteerData).catch((serverError) => {
+  await setDoc(newVolunteerRef, newVolunteerData).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -420,21 +476,32 @@ export const addVolunteer = async (data: any) => {
         requestResourceData: newVolunteerData,
       })
     );
+    throw serverError;
   });
 };
 
 export const getVolunteers = async (): Promise<Volunteer[]> => {
-  const volunteersCol = collection(db, 'volunteers');
-  const q = query(volunteersCol, orderBy('createdAt', 'desc'));
-  const volunteersSnapshot = await getDocs(q);
-  const volunteersList = volunteersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Volunteer));
-  return volunteersList;
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
+  try {
+    const volunteersCol = collection(db, 'volunteers');
+    const q = query(volunteersCol, orderBy('createdAt', 'desc'));
+    const volunteersSnapshot = await getDocs(q);
+    const volunteersList = volunteersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Volunteer));
+    return volunteersList;
+  } catch(error: any) {
+    console.error('[Data] Error fetching volunteers:', error);
+    if (error && error.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'volunteers',
+            operation: 'list'
+        }));
+    }
+    return [];
+  }
 };
 
 export const getRecentActivities = async (): Promise<RecentActivity[]> => {
-  if (auth.currentUser) {
-    await auth.currentUser.getIdToken(true);
-  }
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   try {
     const activitiesCol = collection(db, 'activities');
     const q = query(activitiesCol, orderBy('timestamp', 'desc'), limit(5));
@@ -443,7 +510,7 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
     const activities: any[] = [];
     activitiesSnapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.timestamp) { // ensure timestamp exists before processing
+      if (data.timestamp) { 
         activities.push({
           id: doc.id,
           ...data,
@@ -492,9 +559,7 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
 
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
-  if (auth.currentUser) {
-    await auth.currentUser.getIdToken(true);
-  }
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   try {
     const kidsSnapshot = await getDocs(collection(db, 'kids'));
     const giftsSnapshot = await getDocs(collection(db, 'gifts'));
@@ -545,7 +610,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         })
       );
     }
-    // Return empty stats on error to prevent crashes
     const emptyStats: DashboardStats = {
       totalKids: 0,
       kidsCheckedIn: 0,
@@ -557,9 +621,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 };
 
 export const getAttendanceTrend = async (): Promise<{ date: string; attendance: number }[]> => {
-  if (auth.currentUser) {
-    await auth.currentUser.getIdToken(true);
-  }
+  if (auth.currentUser) await auth.currentUser.getIdToken(true);
   try {
     const q = query(
       collection(db, 'activities'),
@@ -572,7 +634,6 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
     const EIGHT_WEEKS_IN_MS = 8 * 7 * 24 * 60 * 60 * 1000;
     const eightWeeksAgo = new Date(Date.now() - EIGHT_WEEKS_IN_MS);
 
-    // Initialize an array of 8 weeks, each with 0 attendance
     const weeklyCounts = Array.from({ length: 8 }, () => 0);
     const today = new Date();
 
@@ -580,7 +641,6 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
       const activity = doc.data();
       const activityDate = (activity.timestamp as Timestamp).toDate();
 
-      // Client-side filtering by date
       if (activityDate < eightWeeksAgo) {
         return;
       }
@@ -588,7 +648,6 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
       const diffTime = today.getTime() - activityDate.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       
-      // weekIndex 0 is this week (days 0-6), 1 is last week (days 7-13), etc.
       const weekIndex = Math.floor(diffDays / 7);
 
       if (weekIndex < 8) {
@@ -604,7 +663,7 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
         date: weekLabel,
         attendance: count,
       };
-    }).reverse(); // Reverse so that "This Week" is at the end (right side of chart)
+    }).reverse(); 
     
     return trend;
 
@@ -617,7 +676,6 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
         requestResourceData: 'This query may require a composite index. Check the console for a link to create it.'
       }));
     }
-    // Return a default structure on error to prevent chart from breaking
     return Array.from({ length: 8 }, (_, i) => ({
       date: `Week ${8 - i}`,
       attendance: 0,
