@@ -47,7 +47,7 @@ export default function CheckInPage() {
   }, [allKids]);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-  const readerRef = useRef<HTMLDivElement>(null);
+  const readerRef = useRef<HTMLDivElement | null>(null);
   const readerId = "check-in-page-scanner";
 
   const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
@@ -90,7 +90,7 @@ export default function CheckInPage() {
         });
         setScannerOpen(false);
       }
-    }, [handleCheckIn, toast, setScannerOpen]);
+    }, [handleCheckIn, toast]);
 
 
   const startScanner = useCallback(() => {
@@ -110,19 +110,17 @@ export default function CheckInPage() {
         Html5QrcodeSupportedFormats.CODE_128,
         Html5QrcodeSupportedFormats.CODE_39
       ],
+      videoConstraints: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      }
     };
 
     const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false });
     html5QrCodeRef.current = html5QrCode;
 
-    const videoConstraints = {
-      facingMode: "environment",
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    };
-
     html5QrCode.start(
-      videoConstraints,
+      { facingMode: "environment" },
       config,
       qrCodeSuccessCallback,
       undefined
@@ -138,13 +136,11 @@ export default function CheckInPage() {
         setScannerOpen(false);
       }
     });
-  }, [qrCodeSuccessCallback, toast, setScannerOpen]);
+  }, [qrCodeSuccessCallback, toast]);
 
   const stopScanner = useCallback(() => {
     if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
       html5QrCodeRef.current.stop().catch((err) => {
-        // This error happens when the component unmounts and tries to stop a scanner that's already gone.
-        // It's safe to ignore as the camera stream is stopped anyway.
         if (err.name !== 'NotFoundError') {
            console.error("Error stopping the scanner:", err);
         }
@@ -155,8 +151,7 @@ export default function CheckInPage() {
 
   useEffect(() => {
     if (isScannerOpen) {
-      // Delay allows the dialog animation to complete before the camera starts, preventing jank.
-      const timer = setTimeout(startScanner, 300); 
+      const timer = setTimeout(startScanner, 500);
       return () => clearTimeout(timer);
     } else {
       stopScanner();
