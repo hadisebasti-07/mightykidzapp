@@ -39,18 +39,21 @@ export default function CheckInPage() {
   const [isScannerOpen, setScannerOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const [readerNode, setReaderNode] = useState<HTMLDivElement | null>(null);
   const { toast } = useToast();
-
+  
   const allKidsRef = useRef(allKids);
   useEffect(() => {
     allKidsRef.current = allKids;
   }, [allKids]);
 
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const readerId = "check-in-page-scanner";
+
   const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
     setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
     
     if (fromScanner) {
+      setScannerOpen(false); // Close scanner immediately on successful scan
       setTimeout(() => setShowSuccess(true), 300);
     } else {
       setShowSuccess(true);
@@ -74,60 +77,77 @@ export default function CheckInPage() {
     }
   }, [toast]);
 
+
   const startScanner = useCallback(() => {
-    if (readerNode) {
-      const scanner = new Html5Qrcode(readerNode.id);
-      const qrCodeSuccessCallback = (decodedText: string) => {
-        const kid = allKidsRef.current.find((k) => k.id === decodedText);
-        if (kid) {
-          handleCheckIn(kid, true);
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Kid Not Found',
-            description: `No kid record found for ID: ${decodedText}`,
-          });
-        }
-        setScannerOpen(false);
-      };
-
-      const config = {
-        fps: 10,
-        qrbox: { width: 300, height: 120 },
-        formatsToSupport: [
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39
-        ],
-      };
-      
-      const start = () => scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
-        .catch(err => {
-          toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not start camera.' });
-          setScannerOpen(false);
-        });
-
-      const timeoutId = setTimeout(start, 500);
-
-      return () => {
-        clearTimeout(timeoutId);
-        if (scanner.isScanning) {
-          scanner.stop().catch(err => {
-            if (err.name !== 'NotFoundError') {
-              console.error("Scanner stop error:", err);
-            }
-          });
-        }
-      };
+    if (!document.getElementById(readerId)) {
+        console.error(`Scanner container with id ${readerId} not found.`);
+        return;
     }
-  }, [readerNode, handleCheckIn, toast]);
+    
+    const qrCodeSuccessCallback = (decodedText: string) => {
+      const kid = allKidsRef.current.find((k) => k.id === decodedText);
+      if (kid) {
+        handleCheckIn(kid, true);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Kid Not Found',
+          description: `No kid record found for ID: ${decodedText}`,
+        });
+        setScannerOpen(false);
+      }
+    };
+    
+    const config = {
+      fps: 10,
+      qrbox: { width: 300, height: 150 },
+       experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true,
+      },
+      rememberLastUsedCamera: true,
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39
+      ],
+    };
+
+    const html5QrCode = new Html5Qrcode(readerId, { verbose: false });
+    html5QrCodeRef.current = html5QrCode;
+
+    html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
+      .catch((err) => {
+        toast({
+            variant: 'destructive',
+            title: 'Scanner Error',
+            description: `Unable to start scanner. Please ensure camera permissions are allowed.`,
+        });
+        setScannerOpen(false);
+      });
+  }, [handleCheckIn, toast]);
+
+  const stopScanner = useCallback(() => {
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      html5QrCodeRef.current.stop().catch((err) => {
+        if (err.name !== 'NotFoundError') {
+           console.error("Error stopping the scanner:", err);
+        }
+      });
+      html5QrCodeRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (isScannerOpen) {
-      const cleanup = startScanner();
-      return cleanup;
+      const timer = setTimeout(startScanner, 300);
+      return () => clearTimeout(timer);
+    } else {
+      stopScanner();
     }
-  }, [isScannerOpen, startScanner]);
+  }, [isScannerOpen, startScanner, stopScanner]);
 
+  useEffect(() => {
+    return () => stopScanner();
+  }, [stopScanner]);
 
   useEffect(() => {
     const fetchKidsAndActivities = async () => {
@@ -226,7 +246,7 @@ export default function CheckInPage() {
                     <DialogTitle>Scan Barcode</DialogTitle>
                     <DialogDescription>Point your camera at a barcode to check-in a kid.</DialogDescription>
                   </DialogHeader>
-                  {isScannerOpen && <div id="reader" ref={setReaderNode} className="w-full"/>}
+                  <div id={readerId} className="w-full"/>
                 </DialogContent>
               </Dialog>
               <Button
