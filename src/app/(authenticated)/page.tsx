@@ -37,12 +37,86 @@ export default function HomePage() {
 
   const [kidForSuccessOverlay, setKidForSuccessOverlay] = useState<Kid | null>(null);
   const [isScannerOpen, setScannerOpen] = useState(false);
-
   const [showSuccess, setShowSuccess] = useState(false);
-  
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+
   const [readerNode, setReaderNode] = useState<HTMLDivElement | null>(null);
   const { toast } = useToast();
+
+  const allKidsRef = useRef(allKids);
+  useEffect(() => {
+    allKidsRef.current = allKids;
+  }, [allKids]);
+
+  const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
+    setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
+    
+    if (fromScanner) {
+      setTimeout(() => setShowSuccess(true), 300);
+    } else {
+      setShowSuccess(true);
+    }
+
+    try {
+      await checkInKid(kid.id);
+      const refreshedKids = await getKids();
+      setAllKids(refreshedKids);
+      setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
+      setQuickCheckInKids(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
+    } catch (e) {
+      console.error("Check-in failed:", e);
+      toast({
+        variant: "destructive",
+        title: "Check-in Failed",
+        description: "Could not sync with database. Please try again.",
+      });
+      setShowSuccess(false);
+      setKidForSuccessOverlay(null);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (readerNode) {
+      const scanner = new Html5Qrcode(readerNode.id);
+      const qrCodeSuccessCallback = (decodedText: string) => {
+        const kid = allKidsRef.current.find((k) => k.id === decodedText);
+        if (kid) {
+          handleCheckIn(kid, true);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Kid Not Found',
+            description: `No kid record found for ID: ${decodedText}`,
+          });
+        }
+        setScannerOpen(false);
+      };
+
+      const config = {
+        fps: 12,
+        qrbox: { width: 320, height: 120 },
+        aspectRatio: 1.777,
+        disableFlip: false,
+        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
+      };
+
+      scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
+        .catch(err => {
+          toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not start camera.' });
+          setScannerOpen(false);
+        });
+
+      return () => {
+        if (scanner.isScanning) {
+          scanner.stop().catch(err => {
+            if (err.name !== 'NotFoundError') {
+              console.error("Scanner stop error:", err);
+            }
+          });
+        }
+      };
+    }
+  }, [readerNode, handleCheckIn, toast]);
+
 
   useEffect(() => {
     const fetchKidsAndActivities = async () => {
@@ -63,94 +137,6 @@ export default function HomePage() {
     };
     fetchKidsAndActivities();
   }, []);
-
-  const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
-    setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
-    
-    if (fromScanner) {
-      setTimeout(() => setShowSuccess(true), 300);
-    } else {
-      setShowSuccess(true);
-    }
-
-    try {
-      await checkInKid(kid.id);
-
-      const refreshedKids = await getKids();
-      setAllKids(refreshedKids);
-
-      setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
-      setQuickCheckInKids(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
-
-    } catch (e) {
-      console.error("Check-in failed:", e);
-      toast({
-        variant: "destructive",
-        title: "Check-in Failed",
-        description: "Could not sync with database. Please try again.",
-      });
-      
-      setShowSuccess(false);
-      setKidForSuccessOverlay(null);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    if (readerNode) {
-      const html5QrCode = new Html5Qrcode(readerNode.id);
-      html5QrCodeRef.current = html5QrCode;
-
-      const config = {
-        fps: 12,
-        qrbox: { width: 320, height: 120 },
-        aspectRatio: 1.777, // 16:9 camera
-        disableFlip: false,
-        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
-      };
-
-      const qrCodeSuccessCallback = (decodedText: string) => {
-        if (isScannerOpen) {
-          setScannerOpen(false);
-          const kid = allKids.find((k) => k.id === decodedText);
-          if (kid) {
-            handleCheckIn(kid, true);
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Kid Not Found',
-              description: `No kid record found for ID: ${decodedText}`,
-            });
-          }
-        }
-      };
-
-      html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        qrCodeSuccessCallback,
-        undefined
-      ).catch(err => {
-        toast({
-          variant: 'destructive',
-          title: 'Camera Error',
-          description: 'Could not start camera. Please check permissions.',
-        });
-        setScannerOpen(false);
-      });
-
-      return () => {
-        if (html5QrCodeRef.current?.isScanning) {
-          html5QrCodeRef.current.stop().catch(err => {
-            // Ignore NotFoundError which can happen on cleanup
-            if (err.name !== 'NotFoundError') {
-              console.log("Scanner stopped. Cleanup error:", err);
-            }
-          });
-        }
-      };
-    }
-  }, [readerNode, allKids, handleCheckIn, isScannerOpen, toast]);
-
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
