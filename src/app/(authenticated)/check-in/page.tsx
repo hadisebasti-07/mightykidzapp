@@ -74,7 +74,7 @@ export default function CheckInPage() {
     }
   }, [toast]);
 
-  useEffect(() => {
+  const startScanner = useCallback(() => {
     if (readerNode) {
       const scanner = new Html5Qrcode(readerNode.id);
       const qrCodeSuccessCallback = (decodedText: string) => {
@@ -98,14 +98,17 @@ export default function CheckInPage() {
         disableFlip: false,
         formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
       };
-
-      scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
+      
+      const start = () => scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
         .catch(err => {
           toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not start camera.' });
           setScannerOpen(false);
         });
 
+      const timeoutId = setTimeout(start, 500);
+
       return () => {
+        clearTimeout(timeoutId);
         if (scanner.isScanning) {
           scanner.stop().catch(err => {
             if (err.name !== 'NotFoundError') {
@@ -116,6 +119,13 @@ export default function CheckInPage() {
       };
     }
   }, [readerNode, handleCheckIn, toast]);
+
+  useEffect(() => {
+    if (isScannerOpen) {
+      const cleanup = startScanner();
+      return cleanup;
+    }
+  }, [isScannerOpen, startScanner]);
 
 
   useEffect(() => {
