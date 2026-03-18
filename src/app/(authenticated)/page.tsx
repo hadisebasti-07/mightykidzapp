@@ -111,33 +111,54 @@ export default function HomePage() {
       formatsToSupport: [
         Html5QrcodeSupportedFormats.CODE_128,
         Html5QrcodeSupportedFormats.CODE_39
-      ],
-      videoConstraints: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      }
+      ]
     };
 
-    const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false, rememberLastUsedCamera: false });
-    html5QrCodeRef.current = html5QrCode;
+    const scannerError = (err: any) => {
+        if (err.name !== 'NotFoundError') {
+            toast({
+                variant: 'destructive',
+                title: 'Scanner Error',
+                description: `Could not start camera. Please ensure permissions are allowed.`,
+            });
+            console.error("Scanner start error:", err);
+            setScannerOpen(false);
+        }
+    };
 
-    html5QrCode.start(
-      { facingMode: { exact: "environment" } },
-      config,
-      qrCodeSuccessCallback,
-      undefined
-    )
-    .catch((err) => {
-      if (err.name !== 'NotFoundError') {
-        toast({
-            variant: 'destructive',
-            title: 'Scanner Error',
-            description: `Could not start camera. Please ensure permissions are allowed and the camera is not in use by another app.`,
-        });
-        console.error("Scanner start error:", err);
-        setScannerOpen(false);
-      }
-    });
+    const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false });
+    html5QrcodeRef.current = html5QrCode;
+    
+    Html5Qrcode.getCameras()
+      .then((cameras) => {
+        if (cameras && cameras.length) {
+          const backCamera = cameras.find((camera) => /back|rear|environment/i.test(camera.label));
+          const cameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id;
+          
+          html5QrCode.start(
+            cameraId,
+            config,
+            qrCodeSuccessCallback,
+            undefined
+          ).catch(scannerError);
+        } else {
+          html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            qrCodeSuccessCallback,
+            undefined
+          ).catch(scannerError);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to get cameras, falling back to default.", err);
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            qrCodeSuccessCallback,
+            undefined
+          ).catch(scannerError);
+      });
   }, [qrCodeSuccessCallback, toast]);
 
   const stopScanner = useCallback(() => {
