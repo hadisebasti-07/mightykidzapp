@@ -16,8 +16,8 @@ rules_version = '2';
  *
  * @data_structure
  * Data is organized into several top-level collections: `/kids`, `/gifts`,
- * `/volunteers`, etc. The `/admins` collection is no longer used for live
- * authorization checks but can be kept for auditing or bootstrapping purposes.
+ * `/volunteers`, etc. The `/admins` collection is now used as a trigger for
+ * a Cloud Function to grant admin privileges, rather than for live authorization.
  *
  * @key_security_decisions
  * - Admin-Only Access via Custom Claims: The primary security principle is that
@@ -25,9 +25,9 @@ rules_version = '2';
  *   token can access data. This avoids costly database reads in security rules
  *   and is required for collection group queries to be properly secured.
  * - Client-Side Admin Management Disabled: Rules explicitly prevent clients
- *   from creating, modifying, or deleting documents in the `/admins`
- *   collection. Admin status is managed out-of-band using a trusted
- *   server-side process (e.g., a Cloud Function with the Firebase Admin SDK).
+ *   from managing the `/admins` collection. Admin status must be managed by
+ *   adding/removing documents in the Firebase Console, which triggers a Cloud
+ *   Function to update user claims.
  *
  */
 service cloud.firestore {
@@ -50,7 +50,7 @@ service cloud.firestore {
      * The `exists()` or `get()` methods are not permitted in collection group rules.
      */
     function isAdmin() {
-      return request.auth.token.admin == true;
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
     /**
@@ -93,9 +93,10 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     /**
-     * @description Manages admin role markers. This collection is NOT used for
-     * live auth checks anymore but can be useful for auditing. Writes are
-     * disabled from the client to prevent self-promotion.
+     * @description Manages admin role markers. Creating/deleting documents here
+     * triggers Cloud Functions to set/unset custom claims. Writes are disabled
+     * from the client to prevent self-promotion. Admin roles must be managed
+     * via the Firebase Console or a trusted backend.
      * @path /admins/{adminUid}
      */
     match /admins/{adminUid} {
