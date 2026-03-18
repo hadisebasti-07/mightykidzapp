@@ -139,7 +139,7 @@ export default function CheckInPage() {
       return () => {
         if (html5QrCodeRef.current?.isScanning) {
           html5QrCodeRef.current.stop().catch(err => {
-            console.error("Error stopping the scanner.", err);
+            console.log("Scanner stopped. Cleanup error (ignoring):", err);
           });
         }
       };
