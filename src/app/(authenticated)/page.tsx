@@ -112,13 +112,7 @@ export default function HomePage() {
     let isMounted = true;
     
     const hints = new Map();
-    const formats = [
-      BarcodeFormat.QR_CODE,
-      BarcodeFormat.DATA_MATRIX,
-      BarcodeFormat.CODE_128,
-      BarcodeFormat.EAN_13,
-      BarcodeFormat.UPC_A,
-    ];
+    const formats = [BarcodeFormat.CODE_128];
     hints.set(9, formats); // POSSIBLE_FORMATS
     hints.set(3, true);   // TRY_HARDER
     hints.set(1, true);   // ALSO_INVERTED
@@ -270,7 +264,7 @@ export default function HomePage() {
                   <div className="relative h-[75svh] w-full">
                     <video
                       ref={videoRef}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       autoPlay
                       playsInline
                       muted
