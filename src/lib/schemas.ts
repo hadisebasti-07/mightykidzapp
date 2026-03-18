@@ -27,19 +27,49 @@ export const kidImportSchema = z.object({
   id: z.string().optional().or(z.literal('')),
   firstName: z.string().min(1, { message: 'firstName is required' }),
   lastName: z.string().min(1, { message: 'lastName is required' }),
-  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
-  gender: z.enum(['Male', 'Female']),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  gender: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        const lowerVal = val.trim().toLowerCase();
+        if (lowerVal === 'male') return 'Male';
+        if (lowerVal === 'female') return 'Female';
+      }
+      return val;
+    },
+    z.enum(['Male', 'Female'], {
+      errorMap: () => ({ message: "Gender must be 'Male' or 'Female'" }),
+    })
+  ),
   parentName: z.string().min(1, { message: 'parentName is required' }),
-  parentPhone: z.string().min(8, { message: 'Phone number must be at least 8 digits.' }),
-  className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']),
-  houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional().or(z.literal('')),
+  parentPhone: z.string().transform(val => (val || '').replace(/\D/g, '')).min(8, { message: 'Phone number must contain at least 8 digits.'}),
+  className: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim().toLowerCase() : val),
+    z.enum(['discoverer', 'explorer', 'adventurer', 'warrior'], {
+      errorMap: () => ({ message: "Class name is invalid. Must be one of 'discoverer', 'explorer', 'adventurer', 'warrior'." }),
+    })
+  ),
+  houseColor: z.preprocess(
+      (val) => {
+        if (typeof val === 'string' && val.trim()) {
+            const lower = val.trim().toLowerCase();
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+        }
+        return undefined; // Treat empty or whitespace-only strings as not provided
+      },
+      z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
+  ),
   nickname: z.string().optional(),
   allergies: z.string().optional(),
   medicalNotes: z.string().optional(),
-  photoUrl: z.string().url({ message: 'Invalid photo URL' }).optional().or(z.literal('')),
+  photoUrl: z.preprocess(
+    (val) => (val && typeof val === 'string' && val.trim()) ? val.trim() : undefined,
+    z.string().url({ message: 'Invalid photo URL' }).optional()
+  ),
   coinsBalance: z.coerce.number().int().default(0),
   totalAttendance: z.coerce.number().int().default(0),
 });
+
 export type KidImportValues = z.infer<typeof kidImportSchema>;
 
 
