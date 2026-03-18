@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from './firebase/firebase';
+import { db, auth } from './firebase/firebase';
 import {
   collection,
   doc,
@@ -432,6 +432,9 @@ export const getVolunteers = async (): Promise<Volunteer[]> => {
 };
 
 export const getRecentActivities = async (): Promise<RecentActivity[]> => {
+  if (auth.currentUser) {
+    await auth.currentUser.getIdToken(true);
+  }
   try {
     const activitiesCol = collection(db, 'activities');
     const q = query(activitiesCol, orderBy('timestamp', 'desc'), limit(5));
@@ -489,6 +492,9 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
 
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
+  if (auth.currentUser) {
+    await auth.currentUser.getIdToken(true);
+  }
   try {
     const kidsSnapshot = await getDocs(collection(db, 'kids'));
     const giftsSnapshot = await getDocs(collection(db, 'gifts'));
@@ -551,6 +557,9 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 };
 
 export const getAttendanceTrend = async (): Promise<{ date: string; attendance: number }[]> => {
+  if (auth.currentUser) {
+    await auth.currentUser.getIdToken(true);
+  }
   try {
     const q = query(
       collection(db, 'activities'),
