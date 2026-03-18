@@ -47,6 +47,7 @@ export default function CheckInPage() {
   }, [allKids]);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const readerRef = useRef<HTMLDivElement>(null);
   const readerId = "check-in-page-scanner";
 
   const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
@@ -76,15 +77,8 @@ export default function CheckInPage() {
       setKidForSuccessOverlay(null);
     }
   }, [toast]);
-
-
-  const startScanner = useCallback(() => {
-    if (!document.getElementById(readerId)) {
-        console.error(`Scanner container with id ${readerId} not found.`);
-        return;
-    }
-    
-    const qrCodeSuccessCallback = (decodedText: string) => {
+  
+  const qrCodeSuccessCallback = useCallback((decodedText: string) => {
       const kid = allKidsRef.current.find((k) => k.id === decodedText);
       if (kid) {
         handleCheckIn(kid, true);
@@ -96,12 +90,19 @@ export default function CheckInPage() {
         });
         setScannerOpen(false);
       }
-    };
+    }, [handleCheckIn, toast, setScannerOpen]);
+
+
+  const startScanner = useCallback(() => {
+    if (!readerRef.current) {
+        console.warn("Scanner element not ready.");
+        return;
+    }
     
     const config = {
-      fps: 10,
-      qrbox: { width: 300, height: 150 },
-       experimentalFeatures: {
+      fps: 12,
+      qrbox: { width: 320, height: 120 },
+      experimentalFeatures: {
         useBarCodeDetectorIfSupported: true,
       },
       rememberLastUsedCamera: true,
@@ -111,23 +112,39 @@ export default function CheckInPage() {
       ],
     };
 
-    const html5QrCode = new Html5Qrcode(readerId, { verbose: false });
+    const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false });
     html5QrCodeRef.current = html5QrCode;
 
-    html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
-      .catch((err) => {
+    const videoConstraints = {
+      facingMode: "environment",
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    };
+
+    html5QrCode.start(
+      videoConstraints,
+      config,
+      qrCodeSuccessCallback,
+      undefined
+    )
+    .catch((err) => {
+      if (err.name !== 'NotFoundError') {
         toast({
             variant: 'destructive',
             title: 'Scanner Error',
-            description: `Unable to start scanner. Please ensure camera permissions are allowed.`,
+            description: `Could not start camera. Please ensure permissions are allowed and the camera is not in use by another app.`,
         });
+        console.error("Scanner start error:", err);
         setScannerOpen(false);
-      });
-  }, [handleCheckIn, toast]);
+      }
+    });
+  }, [qrCodeSuccessCallback, toast, setScannerOpen]);
 
   const stopScanner = useCallback(() => {
     if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
       html5QrCodeRef.current.stop().catch((err) => {
+        // This error happens when the component unmounts and tries to stop a scanner that's already gone.
+        // It's safe to ignore as the camera stream is stopped anyway.
         if (err.name !== 'NotFoundError') {
            console.error("Error stopping the scanner:", err);
         }
@@ -138,16 +155,13 @@ export default function CheckInPage() {
 
   useEffect(() => {
     if (isScannerOpen) {
-      const timer = setTimeout(startScanner, 300);
+      // Delay allows the dialog animation to complete before the camera starts, preventing jank.
+      const timer = setTimeout(startScanner, 300); 
       return () => clearTimeout(timer);
     } else {
       stopScanner();
     }
   }, [isScannerOpen, startScanner, stopScanner]);
-
-  useEffect(() => {
-    return () => stopScanner();
-  }, [stopScanner]);
 
   useEffect(() => {
     const fetchKidsAndActivities = async () => {
@@ -241,12 +255,14 @@ export default function CheckInPage() {
                     <span className="text-xs">Scan</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-xl">
                   <DialogHeader>
                     <DialogTitle>Scan Barcode</DialogTitle>
                     <DialogDescription>Point your camera at a barcode to check-in a kid.</DialogDescription>
                   </DialogHeader>
-                  <div id={readerId} className="w-full"/>
+                  <div className="overflow-hidden rounded-lg">
+                    <div ref={readerRef} id={readerId} />
+                  </div>
                 </DialogContent>
               </Dialog>
               <Button
