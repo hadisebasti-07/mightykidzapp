@@ -552,17 +552,16 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
 export const getAttendanceTrend = async (): Promise<{ date: string; attendance: number }[]> => {
   try {
-    const EIGHT_WEEKS_IN_MS = 8 * 7 * 24 * 60 * 60 * 1000;
-    const eightWeeksAgo = new Date(Date.now() - EIGHT_WEEKS_IN_MS);
-
     const q = query(
       collection(db, 'activities'),
       where('type', '==', 'check-in'),
-      where('timestamp', '>=', eightWeeksAgo),
       orderBy('timestamp', 'desc')
     );
 
     const querySnapshot = await getDocs(q);
+    
+    const EIGHT_WEEKS_IN_MS = 8 * 7 * 24 * 60 * 60 * 1000;
+    const eightWeeksAgo = new Date(Date.now() - EIGHT_WEEKS_IN_MS);
 
     // Initialize an array of 8 weeks, each with 0 attendance
     const weeklyCounts = Array.from({ length: 8 }, () => 0);
@@ -571,6 +570,11 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
     querySnapshot.forEach((doc) => {
       const activity = doc.data();
       const activityDate = (activity.timestamp as Timestamp).toDate();
+
+      // Client-side filtering by date
+      if (activityDate < eightWeeksAgo) {
+        return;
+      }
 
       const diffTime = today.getTime() - activityDate.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -606,7 +610,7 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
     }
     // Return a default structure on error to prevent chart from breaking
     return Array.from({ length: 8 }, (_, i) => ({
-      date: `Week ${8-i}`,
+      date: `Week ${8 - i}`,
       attendance: 0,
     }));
   }
