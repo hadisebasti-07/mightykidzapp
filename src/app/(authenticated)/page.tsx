@@ -92,14 +92,18 @@ export default function HomePage() {
       };
 
       const config = {
-        fps: 12,
-        qrbox: { width: 320, height: 120 },
-        aspectRatio: 1.777,
-        disableFlip: false,
-        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
+        fps: 10,
+        qrbox: { width: 300, height: 120 },
+        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
+      };
+
+      const videoConstraints = {
+        facingMode: "environment",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
       };
       
-      const start = () => scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
+      const start = () => scanner.start(videoConstraints, config, qrCodeSuccessCallback, undefined)
         .catch(err => {
           toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not start camera.' });
           setScannerOpen(false);
