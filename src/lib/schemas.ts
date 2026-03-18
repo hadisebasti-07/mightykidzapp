@@ -42,7 +42,7 @@ export const kidImportSchema = z.object({
     })
   ),
   parentName: z.string().min(1, { message: 'parentName is required' }),
-  parentPhone: z.string().transform(val => (val || '').replace(/\D/g, '')).min(8, { message: 'Phone number must contain at least 8 digits.'}),
+  parentPhone: z.string().transform(val => (val || '').replace(/\D/g, '')).pipe(z.string().min(8, { message: 'Phone number must contain at least 8 digits.'})),
   className: z.preprocess(
     (val) => (typeof val === 'string' ? val.trim().toLowerCase() : val),
     z.enum(['discoverer', 'explorer', 'adventurer', 'warrior'], {
