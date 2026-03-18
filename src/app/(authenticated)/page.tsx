@@ -10,7 +10,6 @@ import {
   X,
   QrCode,
   UserPlus,
-  CameraOff,
   Coins,
 } from 'lucide-react';
 import { getKids, getRecentActivities, checkInKid } from '@/lib/data';
@@ -20,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -27,7 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
-import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/browser';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 
 export default function HomePage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -37,13 +37,10 @@ export default function HomePage() {
 
   const [kidForSuccessOverlay, setKidForSuccessOverlay] = useState<Kid | null>(null);
   const [isScannerOpen, setScannerOpen] = useState(false);
-  const [isClosingScanner, setIsClosingScanner] = useState(false);
 
-  // State for the success overlay
   const [showSuccess, setShowSuccess] = useState(false);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,7 +48,6 @@ export default function HomePage() {
       const kidsData = await getKids();
       setAllKids(kidsData);
 
-      // Populate quick check-in
       const recentActivities = (await getRecentActivities()).filter(
         (a) => a.type === 'check-in'
       );
@@ -61,7 +57,7 @@ export default function HomePage() {
           kidsData.find((k) => `${k.firstName} ${k.lastName}` === name)
         )
         .filter((k): k is Kid => !!k)
-        .slice(0, 3); // Show top 3
+        .slice(0, 3);
       setQuickCheckInKids(quickKids);
     };
     fetchKidsAndActivities();
@@ -77,14 +73,11 @@ export default function HomePage() {
     }
 
     try {
-      // Perform the database update in the background
       await checkInKid(kid.id);
 
-      // On success, refresh all kid data to ensure UI is consistent
       const refreshedKids = await getKids();
       setAllKids(refreshedKids);
 
-      // Update the lists that are currently displayed
       setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
       setQuickCheckInKids(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
 
@@ -96,98 +89,61 @@ export default function HomePage() {
         description: "Could not sync with database. Please try again.",
       });
       
-      // On failure, immediately hide the success overlay
       setShowSuccess(false);
       setKidForSuccessOverlay(null);
     }
   }, [toast]);
 
   useEffect(() => {
-    if (!isScannerOpen) {
-      setIsClosingScanner(false);
-      return;
-    }
-    
-    setIsClosingScanner(false);
-    let isMounted = true;
-    
-    const hints = new Map();
-    const formats = [BarcodeFormat.CODE_128];
-    hints.set(9, formats); // POSSIBLE_FORMATS
-    hints.set(3, true);   // TRY_HARDER
-    hints.set(1, true);   // ALSO_INVERTED
-    const codeReader = new BrowserMultiFormatReader(hints);
-    let stream: MediaStream | null = null;
-    
-    const startScanner = async () => {
-      try {
-        if (!isMounted) return;
-        setHasCameraPermission(true); // Optimistic
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            focusMode: 'continuous',
-          },
-        });
+    if (isScannerOpen) {
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCodeRef.current = html5QrCode;
 
-        if (videoRef.current && isMounted) {
-          videoRef.current.srcObject = stream;
-          
-          codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
-            if (isClosingScanner || !isMounted) {
-              return;
-            }
+      const config = {
+        fps: 10,
+        qrbox: { width: 300, height: 120 },
+        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
+      };
 
-            if (result) {
-              setIsClosingScanner(true);
-              setScannerOpen(false); 
-
-              const scannedId = result.getText();
-              const kid = allKids.find((k) => k.id === scannedId);
-              
-              if (kid) {
-                handleCheckIn(kid, true);
-              } else {
-                toast({
-                  variant: 'destructive',
-                  title: 'Kid Not Found',
-                  description: `No kid record found for ID: ${scannedId}`,
-                });
-              }
-            } else if (err && err.name !== 'NotFoundException' && isScannerOpen) {
-              console.error('Barcode scanning error:', err);
-            }
-          });
+      const qrCodeSuccessCallback = (decodedText: string) => {
+         if (isScannerOpen) {
+          setScannerOpen(false);
+          const kid = allKids.find((k) => k.id === decodedText);
+          if (kid) {
+            handleCheckIn(kid, true);
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Kid Not Found',
+              description: `No kid record found for ID: ${decodedText}`,
+            });
+          }
         }
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('Camera access error:', err);
-        setHasCameraPermission(false);
+      };
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        qrCodeSuccessCallback,
+        undefined
+      ).catch(err => {
         toast({
           variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to scan barcodes.',
+          title: 'Camera Error',
+          description: 'Could not start camera. Please check permissions.',
         });
-        setScannerOpen(false);
-      }
-    };
-
-    startScanner();
+      });
+    }
 
     return () => {
-      isMounted = false;
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (html5QrCodeRef.current?.isScanning) {
+        html5QrCodeRef.current.stop().catch(err => {
+          console.error("Error stopping the scanner.", err);
+        });
       }
     };
-  }, [isScannerOpen, allKids, handleCheckIn, toast, isClosingScanner]);
+  }, [isScannerOpen, allKids, handleCheckIn, toast]);
 
-  // Effect to handle the success overlay auto-close
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (showSuccess) {
@@ -260,32 +216,12 @@ export default function HomePage() {
                     <span className="text-xs">Scan</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl p-0">
-                  <div className="relative h-[75svh] w-full">
-                    <video
-                      ref={videoRef}
-                      className="h-full w-full object-contain"
-                      autoPlay
-                      playsInline
-                      muted
-                    />
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/20">
-                      <h2 className="mb-4 text-lg font-medium text-white drop-shadow-md">Scan Barcode</h2>
-                      <div className="h-1/2 w-4/5 rounded-2xl border-4 border-dashed border-white/80" />
-                    </div>
-                    {hasCameraPermission === false && (
-                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 p-4 text-center text-white">
-                        <CameraOff className="mb-4 h-16 w-16" />
-                        <h3 className="text-2xl font-bold">
-                          Camera Access Required
-                        </h3>
-                        <p>
-                          Please allow camera access in your browser settings to
-                          use the scanner.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Scan Barcode</DialogTitle>
+                    <DialogDescription>Point your camera at a barcode to check-in a kid.</DialogDescription>
+                  </DialogHeader>
+                  <div id="reader" className="w-full"/>
                 </DialogContent>
               </Dialog>
               <Button
