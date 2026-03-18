@@ -27,7 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 
 export default function CheckInPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -46,8 +46,8 @@ export default function CheckInPage() {
     allKidsRef.current = allKids;
   }, [allKids]);
 
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const readerRef = useRef<HTMLDivElement | null>(null);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const readerId = "check-in-page-scanner";
 
   const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
@@ -78,10 +78,19 @@ export default function CheckInPage() {
     }
   }, [toast]);
   
+  const stopScanner = useCallback(() => {
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      html5QrCodeRef.current.stop().catch((err) => {
+        if (err.name !== 'NotFoundError') {
+           console.error("Error stopping the scanner:", err);
+        }
+      });
+      html5QrCodeRef.current = null;
+    }
+  }, []);
+
   const qrCodeSuccessCallback = useCallback((decodedText: string) => {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        stopScanner();
-      }
+      stopScanner();
       const kid = allKidsRef.current.find((k) => k.id === decodedText);
       if (kid) {
         handleCheckIn(kid, true);
@@ -93,7 +102,7 @@ export default function CheckInPage() {
         });
         setScannerOpen(false);
       }
-    }, [handleCheckIn, toast]);
+    }, [handleCheckIn, stopScanner, toast]);
 
 
   const startScanner = useCallback(() => {
@@ -103,27 +112,11 @@ export default function CheckInPage() {
     }
     
     const config = {
-      fps: 12,
-      qrbox: { width: 320, height: 120 },
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
       experimentalFeatures: {
         useBarCodeDetectorIfSupported: true,
       },
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39
-      ]
-    };
-
-    const scannerError = (err: any) => {
-        if (err.name !== 'NotFoundError') {
-            toast({
-                variant: 'destructive',
-                title: 'Scanner Error',
-                description: `Could not start camera. Please ensure permissions are allowed.`,
-            });
-            console.error("Scanner start error:", err);
-            setScannerOpen(false);
-        }
     };
 
     const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false });
@@ -136,45 +129,46 @@ export default function CheckInPage() {
           const cameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id;
           
           html5QrCode.start(
-            cameraId,
+            { deviceId: { exact: cameraId } },
             config,
             qrCodeSuccessCallback,
             undefined
-          ).catch(scannerError);
+          ).catch((err) => {
+              console.error("Scanner start error:", err);
+              toast({
+                  variant: 'destructive',
+                  title: 'Scanner Error',
+                  description: `Could not start camera. Please ensure permissions are allowed.`,
+              });
+              setScannerOpen(false);
+          });
         } else {
-          html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            qrCodeSuccessCallback,
-            undefined
-          ).catch(scannerError);
+          throw new Error("No cameras found.");
         }
       })
       .catch((err) => {
-        console.error("Failed to get cameras, falling back to default.", err);
+        console.error("Failed to get or start camera:", err);
+        // Fallback to simpler method
         html5QrCode.start(
-            { facingMode: "environment" },
+            { facingMode: { exact: "environment" } },
             config,
             qrCodeSuccessCallback,
             undefined
-          ).catch(scannerError);
+          ).catch(finalErr => {
+            console.error("Final scanner start attempt failed:", finalErr);
+             toast({
+                variant: 'destructive',
+                title: 'Camera Error',
+                description: `Could not start the back camera. Please check permissions.`,
+            });
+            setScannerOpen(false);
+          });
       });
   }, [qrCodeSuccessCallback, toast]);
 
-  const stopScanner = useCallback(() => {
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      html5QrCodeRef.current.stop().catch((err) => {
-        if (err.name !== 'NotFoundError') {
-           console.error("Error stopping the scanner:", err);
-        }
-      });
-      html5QrCodeRef.current = null;
-    }
-  }, []);
-
   useEffect(() => {
     if (isScannerOpen) {
-      const timer = setTimeout(startScanner, 500);
+      const timer = setTimeout(startScanner, 100); 
       return () => clearTimeout(timer);
     } else {
       stopScanner();
