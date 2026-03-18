@@ -20,7 +20,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Force a refresh of the token to get latest custom claims. This is
+        // crucial for scenarios where a user is granted admin privileges
+        // while they are already logged in.
+        await user.getIdToken(true);
+      }
       setUser(user);
       setLoading(false);
     });
