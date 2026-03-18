@@ -79,6 +79,9 @@ export default function CheckInPage() {
   }, [toast]);
   
   const qrCodeSuccessCallback = useCallback((decodedText: string) => {
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        stopScanner();
+      }
       const kid = allKidsRef.current.find((k) => k.id === decodedText);
       if (kid) {
         handleCheckIn(kid, true);
@@ -115,11 +118,11 @@ export default function CheckInPage() {
       }
     };
 
-    const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false });
+    const html5QrCode = new Html5Qrcode(readerRef.current.id, { verbose: false, rememberLastUsedCamera: false });
     html5QrCodeRef.current = html5QrCode;
 
     html5QrCode.start(
-      { facingMode: "environment" },
+      { facingMode: { exact: "environment" } },
       config,
       qrCodeSuccessCallback,
       undefined
