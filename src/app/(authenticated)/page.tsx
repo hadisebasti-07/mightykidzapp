@@ -105,7 +105,6 @@ export default function HomePage() {
       experimentalFeatures: {
         useBarCodeDetectorIfSupported: true,
       },
-      rememberLastUsedCamera: true,
       formatsToSupport: [
         Html5QrcodeSupportedFormats.CODE_128,
         Html5QrcodeSupportedFormats.CODE_39
