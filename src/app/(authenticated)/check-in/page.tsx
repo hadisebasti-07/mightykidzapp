@@ -101,8 +101,10 @@ export default function CheckInPage() {
       html5QrCodeRef.current = html5QrCode;
 
       const config = {
-        fps: 10,
-        qrbox: { width: 300, height: 120 },
+        fps: 12,
+        qrbox: { width: 320, height: 120 },
+        aspectRatio: 1.777, // 16:9 camera
+        disableFlip: false,
         formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128]
       };
 
@@ -139,7 +141,10 @@ export default function CheckInPage() {
       return () => {
         if (html5QrCodeRef.current?.isScanning) {
           html5QrCodeRef.current.stop().catch(err => {
-            console.log("Scanner stopped. Cleanup error (ignoring):", err);
+            // Ignore NotFoundError which can happen on cleanup
+            if (err.name !== 'NotFoundError') {
+              console.log("Scanner stopped. Cleanup error:", err);
+            }
           });
         }
       };
