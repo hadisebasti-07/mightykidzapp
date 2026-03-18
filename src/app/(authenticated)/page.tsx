@@ -94,7 +94,10 @@ export default function HomePage() {
       const config = {
         fps: 10,
         qrbox: { width: 300, height: 120 },
-        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
+        formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39
+        ],
       };
       
       const start = () => scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
