@@ -99,37 +99,26 @@ export default function HomePage() {
         
         codeReader = new BrowserMultiFormatReader(hints);
 
-        codeReader.listVideoInputDevices()
-          .then((videoInputDevices) => {
-            const rearCamera = videoInputDevices.find(d => /back|rear|environment/i.test(d.label));
-            const deviceId = rearCamera ? rearCamera.deviceId : videoInputDevices[0]?.deviceId;
-
-            if (videoRef.current) {
-              codeReader?.decodeFromVideoDevice(deviceId, videoRef.current, (result, err) => {
-                if (result) {
-                  // Once a result is found, stop the reader and process the scan
-                  codeReader?.reset();
-                  processScan(result.getText());
-                }
-                if (err && !(err instanceof NotFoundException)) {
-                  console.error('Barcode scan error:', err);
-                }
-              });
-            }
-          })
-          .catch((err) => {
-            console.error('Camera enumeration error:', err);
-            toast({
-                variant: 'destructive',
-                title: 'Camera Error',
-                description: 'Could not access camera. Please check permissions.',
-            });
-            setScannerOpen(false);
+        codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
+          if (result) {
+            codeReader?.reset();
+            processScan(result.getText());
+          }
+          if (err && !(err instanceof NotFoundException)) {
+            console.error('Barcode scan error:', err);
+          }
+        }).catch((err) => {
+          console.error('Camera start error:', err);
+          toast({
+              variant: 'destructive',
+              title: 'Camera Error',
+              description: 'Could not access camera. Please check permissions.',
           });
+          setScannerOpen(false);
+        });
     }
 
     return () => {
-      // Ensure the reader is reset on cleanup
       codeReader?.reset();
     };
   }, [isScannerOpen, processScan, toast]);
