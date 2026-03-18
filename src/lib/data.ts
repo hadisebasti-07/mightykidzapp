@@ -558,7 +558,8 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
     const q = query(
       collection(db, 'activities'),
       where('type', '==', 'check-in'),
-      where('timestamp', '>=', eightWeeksAgo)
+      where('timestamp', '>=', eightWeeksAgo),
+      orderBy('timestamp', 'desc')
     );
 
     const querySnapshot = await getDocs(q);
