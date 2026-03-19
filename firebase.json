@@ -9,13 +9,11 @@
     {
       "source": "functions",
       "codebase": "default",
-      "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "venv",
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
-        "*.local",
         "**/*.py",
         "requirements.txt"
       ],
