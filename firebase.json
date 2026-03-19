@@ -15,9 +15,11 @@
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
-        "*.local"
+        "*.local",
+        "**/*.py",
+        "requirements.txt"
       ],
-      "runtime": "python313"
+      "runtime": "nodejs20"
     }
   ],
   "storage": {
