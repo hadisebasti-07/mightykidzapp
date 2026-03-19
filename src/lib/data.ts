@@ -28,7 +28,15 @@ import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
 import { z } from 'zod';
 
+const forceTokenRefresh = async () => {
+  const user = auth.currentUser;
+  if (user) {
+    await user.getIdToken(true);
+  }
+};
+
 export const addKid = async (data: KidFormValues) => {
+  await forceTokenRefresh();
   const birthDate = data.dateOfBirth; // This is a Date object
   const dateString = format(birthDate, 'yyyy-MM-dd'); // Use date-fns to avoid timezone issues
   
@@ -67,6 +75,7 @@ export const addKid = async (data: KidFormValues) => {
 };
 
 export const importKids = async (csvData: string) => {
+  await forceTokenRefresh();
   const batch = writeBatch(db);
   const lines = csvData.trim().split('\n');
   let successCount = 0;
@@ -142,6 +151,7 @@ export const importKids = async (csvData: string) => {
 };
 
 export const getKids = async (): Promise<Kid[]> => {
+  await forceTokenRefresh();
   try {
     const kidsCol = collection(db, 'kids');
     const q = query(kidsCol, orderBy('createdAt', 'desc'));
@@ -161,6 +171,7 @@ export const getKids = async (): Promise<Kid[]> => {
 };
 
 export const getKidById = async (kidId: string): Promise<Kid | null> => {
+  await forceTokenRefresh();
   try {
     const kidRef = doc(db, 'kids', kidId);
     const kidSnap = await getDoc(kidRef);
@@ -184,6 +195,7 @@ export const getKidById = async (kidId: string): Promise<Kid | null> => {
 
 
 export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => {
+  await forceTokenRefresh();
   const kidRef = doc(db, 'kids', kidId);
   
   const updateData: any = { ...data };
@@ -217,6 +229,7 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
 };
 
 export const deleteKid = async (kidId: string) => {
+  await forceTokenRefresh();
   const kidRef = doc(db, 'kids', kidId);
   await deleteDoc(kidRef).catch((serverError) => {
     errorEmitter.emit(
@@ -231,6 +244,7 @@ export const deleteKid = async (kidId: string) => {
 };
 
 export const checkInKid = async (kidId: string) => {
+  await forceTokenRefresh();
   const kidRef = doc(db, 'kids', kidId);
   
   return runTransaction(db, async (transaction) => {
@@ -283,6 +297,7 @@ export const checkInKid = async (kidId: string) => {
 };
 
 export const getGifts = async (): Promise<Gift[]> => {
+  await forceTokenRefresh();
   try {
     const giftsCol = collection(db, 'gifts');
     const q = query(giftsCol, orderBy('createdAt', 'desc'));
@@ -302,6 +317,7 @@ export const getGifts = async (): Promise<Gift[]> => {
 };
 
 export const getGiftById = async (giftId: string): Promise<Gift | null> => {
+  await forceTokenRefresh();
   try {
     const giftRef = doc(db, 'gifts', giftId);
     const giftSnap = await getDoc(giftRef);
@@ -322,6 +338,7 @@ export const getGiftById = async (giftId: string): Promise<Gift | null> => {
 };
 
 export const addGift = async (data: GiftFormValues) => {
+  await forceTokenRefresh();
   const newGiftRef = doc(collection(db, 'gifts'));
   const newGiftData = {
     ...data,
@@ -345,6 +362,7 @@ export const addGift = async (data: GiftFormValues) => {
 };
 
 export const updateGift = async (giftId: string, data: Partial<GiftFormValues>) => {
+  await forceTokenRefresh();
   const giftRef = doc(db, 'gifts', giftId);
   const updateData: any = { ...data };
   if (data.photoDataUrl) {
@@ -366,6 +384,7 @@ export const updateGift = async (giftId: string, data: Partial<GiftFormValues>) 
 };
 
 export const deleteGift = async (giftId: string) => {
+  await forceTokenRefresh();
   const giftRef = doc(db, 'gifts', giftId);
   await deleteDoc(giftRef).catch((serverError) => {
     errorEmitter.emit(
@@ -380,6 +399,7 @@ export const deleteGift = async (giftId: string) => {
 };
 
 export const redeemGift = async (kidId: string, giftId: string) => {
+  await forceTokenRefresh();
   const kidRef = doc(db, 'kids', kidId);
   const giftRef = doc(db, 'gifts', giftId);
 
@@ -447,6 +467,7 @@ export const redeemGift = async (kidId: string, giftId: string) => {
 };
 
 export const addVolunteer = async (data: any) => {
+  await forceTokenRefresh();
   const newVolunteerRef = doc(collection(db, 'volunteers'));
   const newVolunteerData = {
     ...data,
@@ -467,6 +488,7 @@ export const addVolunteer = async (data: any) => {
 };
 
 export const getVolunteers = async (): Promise<Volunteer[]> => {
+  await forceTokenRefresh();
   try {
     const volunteersCol = collection(db, 'volunteers');
     const q = query(volunteersCol, orderBy('createdAt', 'desc'));
@@ -486,6 +508,7 @@ export const getVolunteers = async (): Promise<Volunteer[]> => {
 };
 
 export const getRecentActivities = async (): Promise<RecentActivity[]> => {
+  await forceTokenRefresh();
   try {
     const activitiesCol = collection(db, 'activities');
     const q = query(activitiesCol, orderBy('timestamp', 'desc'), limit(5));
@@ -543,6 +566,7 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
 
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
+  await forceTokenRefresh();
   try {
     const kidsSnapshot = await getDocs(collection(db, 'kids'));
     const giftsSnapshot = await getDocs(collection(db, 'gifts'));
@@ -604,12 +628,12 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 };
 
 export const getAttendanceTrend = async (): Promise<{ date: string; attendance: number }[]> => {
+  await forceTokenRefresh();
   try {
     const q = query(
       collection(db, 'activities'),
       where('type', '==', 'check-in'),
-      orderBy('timestamp', 'desc'),
-      limit(500) // Fetch recent activities to process, adjust as needed
+      orderBy('timestamp', 'desc')
     );
 
     const querySnapshot = await getDocs(q);
@@ -619,6 +643,7 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
 
     const weeklyCounts = Array.from({ length: 8 }, () => 0);
     const today = new Date();
+    today.setHours(23, 59, 59, 999);
 
     querySnapshot.forEach((doc) => {
       const activity = doc.data();
@@ -633,7 +658,7 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
       
       const weekIndex = Math.floor(diffDays / 7);
 
-      if (weekIndex < 8) {
+      if (weekIndex >= 0 && weekIndex < 8) {
         weeklyCounts[weekIndex]++;
       }
     });

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onIdTokenChanged, User } from '@/lib/firebase/auth';
+import { onAuthStateChanged, User } from '@/lib/firebase/auth';
 import { auth } from '@/lib/firebase/auth';
 import { Loader2 } from 'lucide-react';
 
@@ -20,11 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        // Force refresh the token to get the latest claims.
-        await user.getIdTokenResult(true);
-      }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
     });
