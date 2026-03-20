@@ -76,6 +76,7 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
     useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const photoValue = form.watch('photoDataUrl');
 
   useEffect(() => {
@@ -137,6 +138,17 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
     form.setValue('photoDataUrl', dataUrl, { shouldValidate: true });
     setCameraOpen(false);
   };
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            form.setValue('photoDataUrl', reader.result as string, { shouldValidate: true });
+        };
+        reader.readAsDataURL(file);
+    }
+  };
 
   async function onSubmit(data: KidFormValues) {
     try {
@@ -181,59 +193,65 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
                   <UserCircle2 className="h-24 w-24 text-muted-foreground/50" />
                 </AvatarFallback>
               </Avatar>
-              <Dialog open={isCameraOpen} onOpenChange={setCameraOpen}>
-                <DialogTrigger asChild>
-                  <Button type="button" variant="outline">
-                    <Camera className="mr-2" />
-                    {photoValue ? 'Retake Photo' : 'Take Photo'}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Take a Photo</DialogTitle>
-                    <DialogDescription>
-                      Position the child in the frame and click the button
-                      below.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {hasCameraPermission === true ? (
-                    <div className="flex flex-col gap-4">
-                      <video
-                        ref={videoRef}
-                        className="aspect-video w-full rounded-md bg-muted"
-                        autoPlay
-                        playsInline
-                        muted
-                      />
-                      <Button type="button" onClick={handleTakePhoto}>
-                        Take Picture
-                      </Button>
-                    </div>
-                  ) : (
-                    <Alert
-                      variant={
-                        hasCameraPermission === false ? 'destructive' : 'default'
-                      }
-                    >
-                      {hasCameraPermission === false ? <CameraOff /> : <Camera />}
-                      <AlertTitle>
-                        {hasCameraPermission === false
-                          ? 'Camera Access Denied'
-                          : 'Camera Access Required'}
-                      </AlertTitle>
-                      <AlertDescription>
-                        {hasCameraPermission === false
-                          ? 'Please allow camera access in your browser settings to take a photo.'
-                          : 'Requesting camera permission...'}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </DialogContent>
-              </Dialog>
+              <div className="flex gap-2">
+                <Dialog open={isCameraOpen} onOpenChange={setCameraOpen}>
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="outline">
+                      <Camera className="mr-2" />
+                      {photoValue ? 'Retake Photo' : 'Take Photo'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Take a Photo</DialogTitle>
+                      <DialogDescription>
+                        Position the child in the frame and click the button
+                        below.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {hasCameraPermission === true ? (
+                      <div className="flex flex-col gap-4">
+                        <video
+                          ref={videoRef}
+                          className="aspect-video w-full rounded-md bg-muted"
+                          autoPlay
+                          playsInline
+                          muted
+                        />
+                        <Button type="button" onClick={handleTakePhoto}>
+                          Take Picture
+                        </Button>
+                      </div>
+                    ) : (
+                      <Alert
+                        variant={
+                          hasCameraPermission === false ? 'destructive' : 'default'
+                        }
+                      >
+                        {hasCameraPermission === false ? <CameraOff /> : <Camera />}
+                        <AlertTitle>
+                          {hasCameraPermission === false
+                            ? 'Camera Access Denied'
+                            : 'Camera Access Required'}
+                        </AlertTitle>
+                        <AlertDescription>
+                          {hasCameraPermission === false
+                            ? 'Please allow camera access in your browser settings to take a photo.'
+                            : 'Requesting camera permission...'}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </DialogContent>
+                </Dialog>
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    Upload Image
+                </Button>
+              </div>
               <FormMessage />
             </FormItem>
           )}
         />
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
         <canvas ref={canvasRef} className="hidden" />
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
