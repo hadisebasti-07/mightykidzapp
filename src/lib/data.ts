@@ -21,15 +21,14 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
-import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { type KidFormValues, type GiftFormValues, kidImportSchema } from './schemas';
 import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
-import { z } from 'zod';
 
 const forceTokenRefresh = async () => {
   const user = auth.currentUser;
   if (user) {
+    // This is the key change to force a refresh.
     await user.getIdToken(true);
   }
 };
@@ -241,9 +240,41 @@ export const deleteKid = async (kidId: string) => {
   });
 };
 
+export const getTodayCheckedInKidIds = async (): Promise<string[]> => {
+    await forceTokenRefresh();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const activitiesRef = collection(db, 'activities');
+    const q = query(activitiesRef, where('type', '==', 'check-in'), where('timestamp', '>=', startOfToday));
+
+    try {
+        const querySnapshot = await getDocs(q);
+        const kidIds = new Set<string>();
+        querySnapshot.forEach(doc => {
+            kidIds.add(doc.data().kidId);
+        });
+        return Array.from(kidIds);
+    } catch (error: any) {
+        console.error('Error fetching today\'s check-ins:', error);
+        return [];
+    }
+};
+
 export const checkInKid = async (kidId: string) => {
   await forceTokenRefresh();
   const kidRef = doc(db, 'kids', kidId);
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const activitiesCollectionRef = collection(db, 'activities');
+  const todaysAttendanceQuery = query(activitiesCollectionRef, where('type', '==', 'check-in'), where('kidId', '==', kidId), where('timestamp', '>=', startOfToday));
+  
+  const todaysAttendanceSnapshot = await getDocs(todaysAttendanceQuery);
+
+  if (!todaysAttendanceSnapshot.empty) {
+    throw new Error("This kid has already been checked in today.");
+  }
   
   return runTransaction(db, async (transaction) => {
     const kidSnap = await transaction.get(kidRef);
@@ -279,17 +310,19 @@ export const checkInKid = async (kidId: string) => {
     });
 
   }).catch((serverError) => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: `Transaction on ${kidRef.path}`,
-        operation: 'update',
-        requestResourceData: {
-          kidUpdate: { coinsBalance: 'increment(10)', totalAttendance: 'increment(1)' },
-          activityCreate: { type: 'check-in' },
-        },
-      })
-    );
+    if (serverError.message !== "This kid has already been checked in today.") {
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: `Transaction on ${kidRef.path}`,
+            operation: 'update',
+            requestResourceData: {
+              kidUpdate: { coinsBalance: 'increment(10)', totalAttendance: 'increment(1)' },
+              activityCreate: { type: 'check-in' },
+            },
+          })
+        );
+    }
     throw serverError;
   });
 };
@@ -629,7 +662,7 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
   await forceTokenRefresh();
   try {
     const q = query(
-      collection(db, 'activities'),
+      collectionGroup(db, 'activities'),
       where('type', '==', 'check-in'),
       orderBy('timestamp', 'desc')
     );

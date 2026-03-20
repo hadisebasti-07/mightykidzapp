@@ -11,8 +11,9 @@ import {
   QrCode,
   UserPlus,
   Coins,
+  CheckCircle2,
 } from 'lucide-react';
-import { getKids, getRecentActivities, checkInKid } from '@/lib/data';
+import { getKids, getRecentActivities, checkInKid, getTodayCheckedInKidIds } from '@/lib/data';
 import { Kid } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Confetti } from '@/components/confetti';
 import { BrowserMultiFormatReader, NotFoundException, BarcodeFormat, DecodeHintType } from '@zxing/library';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CheckInPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
@@ -38,6 +40,9 @@ export default function CheckInPage() {
   const [kidForSuccessOverlay, setKidForSuccessOverlay] = useState<Kid | null>(null);
   const [isScannerOpen, setScannerOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  const [checkedInKidIds, setCheckedInKidIds] = useState<Set<string>>(new Set());
+  const [loadingInitial, setLoadingInitial] = useState(true);
 
   const { toast } = useToast();
   
@@ -45,10 +50,11 @@ export default function CheckInPage() {
   useEffect(() => {
     allKidsRef.current = allKids;
   }, [allKids]);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
   
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   const handleCheckIn = useCallback(async (kid: Kid, fromScanner = false) => {
+    setCheckedInKidIds(prev => new Set(prev).add(kid.id));
     setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
     
     if (fromScanner) {
@@ -64,21 +70,34 @@ export default function CheckInPage() {
       setAllKids(refreshedKids);
       setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
       setQuickCheckInKids(prev => prev.map(k => k.id === kid.id ? refreshedKids.find(rk => rk.id === kid.id) || k : k));
-    } catch (e) {
+    } catch (e: any) {
       console.error("Check-in failed:", e);
       toast({
         variant: "destructive",
         title: "Check-in Failed",
-        description: "Could not sync with database. Please try again.",
+        description: e.message || "Could not sync with database. Please try again.",
       });
       setShowSuccess(false);
       setKidForSuccessOverlay(null);
+      setCheckedInKidIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(kid.id);
+        return newSet;
+      });
     }
   }, [toast]);
   
   const processScan = useCallback((kidId: string) => {
     const kid = allKidsRef.current.find((k) => k.id === kidId);
     if (kid) {
+      if (checkedInKidIds.has(kidId)) {
+        toast({
+            title: 'Already Checked In',
+            description: `${kid.firstName} is already checked in for today.`,
+        });
+        setScannerOpen(false);
+        return;
+      }
       handleCheckIn(kid, true);
     } else {
       toast({
@@ -88,7 +107,7 @@ export default function CheckInPage() {
       });
       setScannerOpen(false);
     }
-  }, [handleCheckIn, toast]);
+  }, [handleCheckIn, toast, checkedInKidIds]);
 
   useEffect(() => {
     let codeReader: BrowserMultiFormatReader | null = null;
@@ -123,16 +142,24 @@ export default function CheckInPage() {
     };
   }, [isScannerOpen, processScan, toast]);
 
-
   useEffect(() => {
-    const fetchKidsAndActivities = async () => {
-      const kidsData = await getKids();
-      setAllKids(kidsData);
+    const fetchInitialData = async () => {
+      setLoadingInitial(true);
+      const [kidsData, checkedInIds, recentActivitiesData] = await Promise.all([
+        getKids(),
+        getTodayCheckedInKidIds(),
+        getRecentActivities()
+      ]);
 
-      const recentActivities = (await getRecentActivities()).filter(
-        (a) => a.type === 'check-in'
+      setAllKids(kidsData);
+      allKidsRef.current = kidsData;
+      setCheckedInKidIds(new Set(checkedInIds));
+
+      const recentCheckIns = recentActivitiesData.filter(
+        (a) => a.type === 'check-in' && !checkedInIds.includes(a.kidId)
       );
-      const recentKidNames = [...new Set(recentActivities.map((a) => a.kidName))];
+
+      const recentKidNames = [...new Set(recentCheckIns.map((a) => a.kidName))];
       const quickKids = recentKidNames
         .map((name) =>
           kidsData.find((k) => `${k.firstName} ${k.lastName}` === name)
@@ -140,8 +167,9 @@ export default function CheckInPage() {
         .filter((k): k is Kid => !!k)
         .slice(0, 3);
       setQuickCheckInKids(quickKids);
+      setLoadingInitial(false);
     };
-    fetchKidsAndActivities();
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
@@ -170,6 +198,17 @@ export default function CheckInPage() {
     );
     setSearchResults(results);
   };
+  
+  const QuickCheckInSkeleton = () => (
+    <div className="flex items-center gap-2 rounded-xl border p-2 shadow-sm sm:gap-4 sm:p-4">
+      <Skeleton className="h-12 w-12 shrink-0 rounded-full sm:h-16 sm:w-16" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-5 w-3/5" />
+        <Skeleton className="h-4 w-2/5" />
+      </div>
+      <Skeleton className="h-10 w-24 rounded-md sm:h-12 sm:w-32" />
+    </div>
+  )
 
   return (
     <>
@@ -275,9 +314,14 @@ export default function CheckInPage() {
                 <Button
                   className="h-10 flex-shrink-0 px-3 text-sm sm:h-12 sm:px-6 sm:text-base"
                   onClick={() => handleCheckIn(kid)}
+                  disabled={checkedInKidIds.has(kid.id)}
                 >
-                  <UserCheck className="mr-1 h-4 w-4 sm:mr-2" />
-                  Check In
+                  {checkedInKidIds.has(kid.id) ? (
+                    <CheckCircle2 className="mr-1 h-4 w-4 sm:mr-2" />
+                  ) : (
+                    <UserCheck className="mr-1 h-4 w-4 sm:mr-2" />
+                  )}
+                  {checkedInKidIds.has(kid.id) ? 'Checked In' : 'Check In'}
                 </Button>
               </div>
             ))}
@@ -291,7 +335,13 @@ export default function CheckInPage() {
                 <CardTitle>Quick Check-In</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {quickCheckInKids.length > 0 ? (
+                {loadingInitial ? (
+                    <>
+                        <QuickCheckInSkeleton />
+                        <QuickCheckInSkeleton />
+                        <QuickCheckInSkeleton />
+                    </>
+                ) : quickCheckInKids.length > 0 ? (
                   quickCheckInKids.map((kid) => (
                     <div
                       key={kid.id}
@@ -315,9 +365,14 @@ export default function CheckInPage() {
                       <Button
                         className="h-10 flex-shrink-0 px-3 text-sm sm:h-12 sm:px-6 sm:text-base"
                         onClick={() => handleCheckIn(kid)}
+                        disabled={checkedInKidIds.has(kid.id)}
                       >
-                        <UserCheck className="mr-1 h-4 w-4 sm:mr-2" />
-                        Check In
+                         {checkedInKidIds.has(kid.id) ? (
+                            <CheckCircle2 className="mr-1 h-4 w-4 sm:mr-2" />
+                          ) : (
+                            <UserCheck className="mr-1 h-4 w-4 sm:mr-2" />
+                          )}
+                          {checkedInKidIds.has(kid.id) ? 'Checked In' : 'Check In'}
                       </Button>
                     </div>
                   ))

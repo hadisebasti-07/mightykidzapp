@@ -43,6 +43,7 @@ export type Volunteer = {
 export type RecentActivity = {
   id: string;
   type: 'check-in' | 'redemption';
+  kidId: string;
   kidName: string;
   details: string;
   timestamp: string;
