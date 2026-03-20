@@ -125,15 +125,13 @@ export default function HomePage() {
           }
           if (err && !(err instanceof NotFoundException)) {
             console.error('Barcode scan error:', err);
+            toast({
+                variant: 'destructive',
+                title: 'Scanner Error',
+                description: err.message || 'Could not start scanner. Please check camera permissions.',
+            });
+            setScannerOpen(false);
           }
-        }).catch((err) => {
-          console.error('Camera start error:', err);
-          toast({
-              variant: 'destructive',
-              title: 'Camera Error',
-              description: 'Could not access camera. Please check permissions.',
-          });
-          setScannerOpen(false);
         });
     }
 
