@@ -6,9 +6,7 @@ export const kidFormSchema = z.object({
   firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
   lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
   nickname: z.string().optional(),
-  dateOfBirth: z.date({
-    required_error: "A date of birth is required.",
-  }),
+  dateOfBirth: z.string({ required_error: "A date of birth is required."}).regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be in YYYY-MM-DD format." }),
   gender: z.enum(['Male', 'Female']),
   className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior'], {
     required_error: "You need to select a class.",

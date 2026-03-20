@@ -20,7 +20,6 @@ import {
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
-import { format } from 'date-fns';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
 import { UserCheck, Gift as GiftIcon } from 'lucide-react';
 import { type KidFormValues, type GiftFormValues, kidImportSchema } from './schemas';
@@ -37,8 +36,7 @@ const forceTokenRefresh = async () => {
 
 export const addKid = async (data: KidFormValues) => {
   await forceTokenRefresh();
-  const birthDate = data.dateOfBirth; // This is a Date object
-  const dateString = format(birthDate, 'yyyy-MM-dd'); // Use date-fns to avoid timezone issues
+  const dateString = data.dateOfBirth;
   
   const newKidRef = doc(collection(db, 'kids'));
   const newKidData = {
@@ -201,7 +199,7 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
   const updateData: any = { ...data };
 
   if (data.dateOfBirth) {
-    const dateString = format(data.dateOfBirth, 'yyyy-MM-dd');
+    const dateString = data.dateOfBirth;
     updateData.dateOfBirth = dateString;
     updateData.birthdayMonth = parseInt(dateString.split('-')[1], 10);
   }
