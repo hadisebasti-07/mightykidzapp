@@ -112,27 +112,37 @@ export default function HomePage() {
   useEffect(() => {
     let codeReader: BrowserMultiFormatReader | null = null;
     if (isScannerOpen && videoRef.current) {
-        const hints = new Map();
-        const formats = [BarcodeFormat.CODE_128, BarcodeFormat.CODE_39];
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
-        
-        codeReader = new BrowserMultiFormatReader(hints);
+      codeReader = new BrowserMultiFormatReader();
+      const constraints: MediaStreamConstraints = { video: { facingMode: 'environment' } };
 
-        codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
+      codeReader.decodeFromConstraints(constraints, videoRef.current, (result, err) => {
+        if (result) {
+          codeReader?.reset();
+          processScan(result.getText());
+        }
+        if (err && !(err instanceof NotFoundException)) {
+          // This error can happen on every frame if no barcode is found. We don't log it.
+        }
+      }).catch(err => {
+        console.error("Failed to start scanner with environment camera, trying any camera", err);
+        codeReader?.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
           if (result) {
             codeReader?.reset();
             processScan(result.getText());
           }
           if (err && !(err instanceof NotFoundException)) {
-            console.error('Barcode scan error:', err);
-            toast({
-                variant: 'destructive',
-                title: 'Scanner Error',
-                description: err.message || 'Could not start scanner. Please check camera permissions.',
-            });
-            setScannerOpen(false);
+             // This error can happen on every frame if no barcode is found. We don't log it.
           }
+        }).catch(finalErr => {
+          console.error("Failed to start scanner with any device", finalErr);
+          toast({
+            variant: 'destructive',
+            title: 'Scanner Error',
+            description: 'Could not initialize camera. Please check permissions.',
+          });
+          setScannerOpen(false);
         });
+      });
     }
 
     return () => {

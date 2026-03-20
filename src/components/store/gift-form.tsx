@@ -66,29 +66,46 @@ export function GiftForm({ giftToEdit }: { giftToEdit?: Gift }) {
   const photoValue = form.watch('photoDataUrl');
 
   useEffect(() => {
-    if (isCameraOpen) {
-      const getCameraPermission = async () => {
+    let stream: MediaStream | null = null;
+    const getCamera = async () => {
+      if (isCameraOpen) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
           });
           setHasCameraPermission(true);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
           }
         } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
+          console.error(
+            'Error accessing back camera, trying any camera as fallback:',
+            error
+          );
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setHasCameraPermission(true);
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+          } catch (fallbackError) {
+            console.error('Error accessing any camera:', fallbackError);
+            setHasCameraPermission(false);
+          }
         }
-      };
-      getCameraPermission();
-    } else {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      }
+    };
+
+    getCamera();
+
+    return () => {
+      if (stream) {
         stream.getTracks().forEach((track) => track.stop());
+      }
+      if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
-    }
+    };
   }, [isCameraOpen]);
 
   const handleTakePhoto = () => {
