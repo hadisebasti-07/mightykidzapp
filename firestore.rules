@@ -113,13 +113,13 @@ service cloud.firestore {
     
     /**
      * @description A log of all major activities (check-ins, redemptions) for
-     * fast querying on the dashboard.
-     * @path /activities/{activityId}
+     * fast querying on the dashboard. This is a collection group rule to allow
+     * for trend analysis.
+     * @path /{path=**}/activities/{activityId}
      */
-    match /activities/{activityId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
+    match /{path=**}/activities/{activityId} {
       allow create: if isAdmin();
+      allow read: if isAdmin(); // Allows get and list
       allow update: if false;
       allow delete: if false;
     }
