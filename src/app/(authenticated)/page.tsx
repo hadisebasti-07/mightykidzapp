@@ -198,10 +198,12 @@ export default function HomePage() {
       setSearchResults([]);
       return;
     }
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
     const results = allKids.filter(
       (kid) =>
-        kid.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        kid.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kid.firstName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        kid.lastName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        kid.parentName.toLowerCase().includes(lowerCaseSearchTerm) ||
         kid.parentPhone.includes(searchTerm)
     );
     setSearchResults(results);
@@ -239,7 +241,7 @@ export default function HomePage() {
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search by name or parent phone..."
+                placeholder="Search by name, parent name, or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
