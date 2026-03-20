@@ -63,6 +63,7 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
         medicalNotes: '',
         className: undefined,
         houseColor: undefined,
+        coinsBalance: 0,
       };
 
   const form = useForm<KidFormValues>({
@@ -391,6 +392,26 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
             )}
           />
         </div>
+
+        {kidToEdit && (
+            <FormField
+              control={form.control}
+              name="coinsBalance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Coins Balance</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Manually adjust the total number of coins for this child.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        )}
+        
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
           <FormField
             control={form.control}

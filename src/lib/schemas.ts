@@ -16,6 +16,7 @@ export const kidFormSchema = z.object({
   parentPhone: z.string().min(8, { message: 'Phone number must be at least 8 digits.' }),
   allergies: z.string().optional(),
   medicalNotes: z.string().optional(),
+  coinsBalance: z.coerce.number().int().min(0, { message: "Coins balance cannot be negative." }),
 });
 
 export type KidFormValues = z.infer<typeof kidFormSchema>;
