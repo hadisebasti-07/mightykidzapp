@@ -35,6 +35,7 @@ export default function KidsPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
   const [loading, setLoading] = useState(true);
   const [kidToDelete, setKidToDelete] = useState<Kid | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,15 +58,24 @@ export default function KidsPage() {
   }, []);
 
   const filteredKids = useMemo(() => {
-    if (!filter) {
-      return allKids;
-    }
+    let kidsToFilter = allKids;
+
     if (filter === 'this_month_birthdays') {
       const currentMonth = new Date().getMonth() + 1;
-      return allKids.filter((kid) => kid.birthdayMonth === currentMonth);
+      kidsToFilter = kidsToFilter.filter((kid) => kid.birthdayMonth === currentMonth);
     }
-    return allKids;
-  }, [allKids, filter]);
+    
+    if (!searchTerm) {
+        return kidsToFilter;
+    }
+    
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return kidsToFilter.filter(kid => 
+        kid.firstName.toLowerCase().includes(lowercasedTerm) ||
+        kid.lastName.toLowerCase().includes(lowercasedTerm) ||
+        kid.parentName.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [allKids, filter, searchTerm]);
 
   const filterTitle = useMemo(() => {
     if (filter === 'this_month_birthdays') {
@@ -223,8 +233,10 @@ export default function KidsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by name..."
+                placeholder="Search by kid or parent name..."
                 className="py-6 pl-10 text-base"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <Button variant="outline" size="lg" className="h-14 w-full sm:w-auto">
@@ -251,6 +263,7 @@ export default function KidsPage() {
               <p>
                 No kids found
                 {filterTitle && ` with a birthday this month`}.
+                {searchTerm && ` for "${searchTerm}"`}
               </p>
             </div>
           )}
