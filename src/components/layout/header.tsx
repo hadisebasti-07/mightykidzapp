@@ -1,5 +1,4 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Header({ className }: { className?: string }) {
@@ -11,15 +10,6 @@ export function Header({ className }: { className?: string }) {
       )}
     >
       <SidebarTrigger className="shrink-0 text-muted-foreground hover:text-foreground" />
-
-      <div className="relative ml-auto flex-1 md:grow-0">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="search"
-          placeholder="Search kids, gifts..."
-          className="h-10 w-full rounded-full border border-border bg-card pl-9 pr-4 text-sm transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:w-[200px] lg:w-[280px]"
-        />
-      </div>
     </header>
   );
 }
