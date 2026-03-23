@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { Camera, UserCircle2, CameraOff } from 'lucide-react';
+import { Camera, UserCircle2, CameraOff, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -180,6 +180,13 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Purpose Statement</AlertTitle>
+          <AlertDescription>
+            We collect this data to ensure your child's safety and to manage class activities. By submitting this form, you consent to our use of this data for ministry purposes.
+          </AlertDescription>
+        </Alert>
         <FormField
           control={form.control}
           name="photoDataUrl"
@@ -226,7 +233,9 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
                     ) : (
                       <Alert
                         variant={
-                          hasCameraPermission === false ? 'destructive' : 'default'
+                          hasCameraPermission === false
+                            ? 'destructive'
+                            : 'default'
                         }
                       >
                         {hasCameraPermission === false ? <CameraOff /> : <Camera />}
