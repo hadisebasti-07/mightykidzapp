@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -36,7 +37,6 @@ export default function LoginPage() {
       });
       router.push('/');
     } catch (error) {
-      console.error('Login error:', error);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
