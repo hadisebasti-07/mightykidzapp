@@ -36,7 +36,7 @@ const volunteerFormSchema = z.object({
   phone: z.string().min(10, {
     message: 'Phone number must be at least 10 digits.',
   }),
-  role: z.enum(['Admin', 'Leader', 'Volunteer']),
+  role: z.enum(['Admin', 'Leader', 'Volunteer', 'Welcome IC']),
 });
 
 type VolunteerFormValues = z.infer<typeof volunteerFormSchema>;
@@ -138,6 +138,7 @@ export function VolunteerForm() {
                   <SelectItem value="Volunteer">Volunteer</SelectItem>
                   <SelectItem value="Leader">Leader</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Welcome IC">Welcome IC</SelectItem>
                 </SelectContent>
               </Select>
               <FormDescription>

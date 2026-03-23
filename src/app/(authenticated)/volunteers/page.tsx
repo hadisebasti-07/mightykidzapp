@@ -33,8 +33,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { Volunteer } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function VolunteersPage() {
+function VolunteersPage() {
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -135,8 +136,10 @@ export default function VolunteersPage() {
                           volunteer.role === 'Admin'
                             ? 'destructive'
                             : volunteer.role === 'Leader'
-                              ? 'default'
-                              : 'secondary'
+                            ? 'default'
+                            : volunteer.role === 'Welcome IC'
+                            ? 'outline'
+                            : 'secondary'
                         }
                         className={
                           volunteer.role === 'Leader' ? 'bg-primary/80 text-primary-foreground' : ''
@@ -182,3 +185,5 @@ export default function VolunteersPage() {
     </div>
   );
 }
+
+export default withAdminAuth(VolunteersPage);

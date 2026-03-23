@@ -1,3 +1,4 @@
+'use client';
 import { PageHeader } from '@/components/page-header';
 import { VolunteerForm } from '@/components/volunteers/volunteer-form';
 import {
@@ -7,8 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function NewVolunteerPage() {
+function NewVolunteerPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -31,3 +33,5 @@ export default function NewVolunteerPage() {
     </div>
   );
 }
+
+export default withAdminAuth(NewVolunteerPage);

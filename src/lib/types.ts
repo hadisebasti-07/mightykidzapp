@@ -34,7 +34,7 @@ export type Volunteer = {
   name: string;
   phone: string;
   email: string;
-  role: 'Admin' | 'Volunteer' | 'Leader';
+  role: 'Admin' | 'Volunteer' | 'Leader' | 'Welcome IC';
   availability?: string[];
   skills?: string[];
   createdAt: string;

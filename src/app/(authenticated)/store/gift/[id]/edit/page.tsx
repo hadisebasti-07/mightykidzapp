@@ -8,8 +8,9 @@ import { Gift } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams } from 'next/navigation';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function EditGiftPage() {
+function EditGiftPage() {
   const params = useParams();
   const id = params.id as string;
   const [gift, setGift] = useState<Gift | null>(null);
@@ -73,3 +74,5 @@ export default function EditGiftPage() {
     </div>
   );
 }
+
+export default withAdminAuth(EditGiftPage);

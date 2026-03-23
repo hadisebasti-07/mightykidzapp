@@ -1,3 +1,5 @@
+'use client';
+
 import { PageHeader } from '@/components/page-header';
 import { KidForm } from '@/components/kids/kid-form';
 import {
@@ -7,8 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function NewKidPage() {
+function NewKidPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -31,3 +34,5 @@ export default function NewKidPage() {
     </div>
   );
 }
+
+export default withAdminAuth(NewKidPage);

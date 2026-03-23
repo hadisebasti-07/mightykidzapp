@@ -14,8 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { getGifts, deleteGift } from '@/lib/data';
 import type { Gift } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function ManageGiftsPage() {
+function ManageGiftsPage() {
     const [gifts, setGifts] = useState<Gift[]>([]);
     const [loading, setLoading] = useState(true);
     const [giftToDelete, setGiftToDelete] = useState<Gift | null>(null);
@@ -162,3 +163,5 @@ export default function ManageGiftsPage() {
         </>
     );
 }
+
+export default withAdminAuth(ManageGiftsPage);

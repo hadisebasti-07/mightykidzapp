@@ -30,8 +30,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ImportKidsDialog } from '@/components/kids/import-dialog';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function KidsPage() {
+function KidsPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
   const [loading, setLoading] = useState(true);
   const [kidToDelete, setKidToDelete] = useState<Kid | null>(null);
@@ -119,7 +120,6 @@ export default function KidsPage() {
     });
 
     try {
-      // Use allKids state which is already fetched.
       if (allKids.length === 0) {
         toast({
           variant: 'destructive',
@@ -295,3 +295,5 @@ export default function KidsPage() {
     </>
   );
 }
+
+export default withAdminAuth(KidsPage);

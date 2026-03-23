@@ -1,8 +1,11 @@
+'use client';
+
 import { PageHeader } from '@/components/page-header';
 import { GiftForm } from '@/components/store/gift-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function NewGiftPage() {
+function NewGiftPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -25,3 +28,5 @@ export default function NewGiftPage() {
     </div>
   );
 }
+
+export default withAdminAuth(NewGiftPage);

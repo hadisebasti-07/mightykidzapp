@@ -22,29 +22,42 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { signOut, auth } from '@/lib/firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import type { UserRole } from '@/hooks/use-auth';
 
-const navItems = [
-  { href: '/', label: 'Check-In', icon: ScanLine },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/kids', label: 'Kids', icon: Users },
-  { href: '/store', label: 'Store', icon: Gift },
-  { href: '/volunteers', label: 'Volunteers', icon: ClipboardList },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  roles: UserRole[];
+};
+
+const allNavItems: NavItem[] = [
+  { href: '/', label: 'Check-In', icon: ScanLine, roles: ['admin', 'welcome_ic'] },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
+  { href: '/kids', label: 'Kids', icon: Users, roles: ['admin'] },
+  { href: '/store', label: 'Store', icon: Gift, roles: ['admin', 'welcome_ic'] },
+  { href: '/volunteers', label: 'Volunteers', icon: ClipboardList, roles: ['admin'] },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const navItems = useMemo(() => {
+    if (!role) return [];
+    return allNavItems.filter(item => item.roles.includes(role));
+  }, [role]);
 
   const handleLogout = async () => {
     try {
@@ -85,7 +98,7 @@ export function AppSidebar() {
               mounted &&
               (item.href === '/'
                 ? pathname === item.href
-                : pathname.startsWith(item.href));
+                : item.href !== '/' && pathname.startsWith(item.href));
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
@@ -120,10 +133,10 @@ export function AppSidebar() {
           </Avatar>
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
-              {user?.displayName || 'Admin User'}
+              {user?.displayName || user?.email?.split('@')[0] || 'User'}
             </p>
             <p className="truncate text-xs text-sidebar-foreground/50">
-              {user?.email}
+              {role === 'admin' ? 'Administrator' : 'Welcome IC'}
             </p>
           </div>
           <SidebarMenuButton

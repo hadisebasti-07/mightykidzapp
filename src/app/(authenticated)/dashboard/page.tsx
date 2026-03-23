@@ -22,6 +22,7 @@ import { RecentActivityList } from '@/components/dashboard/recent-activity-list'
 import { getDashboardStats } from '@/lib/data';
 import type { DashboardStats } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
 
 const StatCardSkeleton = () => (
@@ -36,7 +37,7 @@ const StatCardSkeleton = () => (
     </Card>
 );
 
-export default function DashboardPage() {
+function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -139,3 +140,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+export default withAdminAuth(DashboardPage);

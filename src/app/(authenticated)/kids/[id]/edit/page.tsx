@@ -13,10 +13,10 @@ import { getKidById } from '@/lib/data';
 import { Kid } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
-export default function EditKidPage() {
-  const router = useRouter();
+function EditKidPage() {
   const params = useParams();
   const id = params.id as string;
 
@@ -82,3 +82,5 @@ export default function EditKidPage() {
     </div>
   );
 }
+
+export default withAdminAuth(EditKidPage);
