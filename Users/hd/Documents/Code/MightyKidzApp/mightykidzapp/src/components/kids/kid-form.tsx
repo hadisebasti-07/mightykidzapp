@@ -509,7 +509,7 @@ export function KidForm({ kidToEdit, isPublic = false }: { kidToEdit?: Kid, isPu
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.back()}
+            onClick={() => isPublic ? router.push('/login') : router.back()}
           >
             Cancel
           </Button>

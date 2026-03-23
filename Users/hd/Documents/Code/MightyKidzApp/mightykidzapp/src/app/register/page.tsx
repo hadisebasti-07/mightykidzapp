@@ -1,4 +1,6 @@
 
+'use client';
+
 import { PageHeader } from '@/components/page-header';
 import { KidForm } from '@/components/kids/kid-form';
 import {

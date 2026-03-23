@@ -2,19 +2,26 @@
 'use client';
 import { z } from 'zod';
 
-export const kidFormSchema = z.object({
+// This is the base schema, used for the public registration form.
+// Admin-only fields are optional here.
+export const baseKidSchema = z.object({
   photoDataUrl: z.string().optional(),
   firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
   lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
   nickname: z.string().optional(),
   dateOfBirth: z.string({ required_error: "A date of birth is required."}).regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be in YYYY-MM-DD format." }),
   gender: z.enum(['Male', 'Female']),
-  className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']).optional(),
-  houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
   parentName: z.string().min(2, { message: 'Parent name is required.' }),
   parentPhone: z.string().min(8, { message: 'Phone number must be at least 8 digits.' }),
   allergies: z.string().optional(),
   medicalNotes: z.string().optional(),
+});
+
+// This schema is for admin actions (create/edit).
+// It extends the base schema and makes admin fields required.
+export const kidFormSchema = baseKidSchema.extend({
+  className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']).optional(),
+  houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
   coinsBalance: z.coerce.number().int().min(0, { message: "Coins balance cannot be negative." }),
 });
 
