@@ -63,8 +63,6 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /pending_kids/{kidId} {
       // Anyone can submit a registration.
-      // This rule is intentionally broad on fields to allow for future form changes.
-      // The key is that only an admin can read/promote this data.
       allow create: if request.resource.data.id == kidId
                     && request.resource.data.firstName is string
                     && request.resource.data.lastName is string
@@ -73,7 +71,12 @@ service cloud.firestore {
                     && request.resource.data.parentName is string
                     && request.resource.data.parentPhone is string
                     && request.resource.data.status == 'pending'
-                    && request.resource.data.submittedAt == request.time;
+                    && request.resource.data.submittedAt == request.time
+                    && (!('nickname' in request.resource.data) || request.resource.data.nickname is string)
+                    && (!('photoDataUrl' in request.resource.data) || request.resource.data.photoDataUrl is string)
+                    && (!('allergies' in request.resource.data) || request.resource.data.allergies is string)
+                    && (!('medicalNotes' in request.resource.data) || request.resource.data.medicalNotes is string);
+
       // Only admins can manage pending registrations
       allow read, list, update, delete: if isAdmin();
     }

@@ -47,6 +47,7 @@ export const submitPublicRegistration = async (data: KidFormValues) => {
     parentPhone: data.parentPhone,
     allergies: data.allergies || '',
     medicalNotes: data.medicalNotes || '',
+    photoDataUrl: data.photoDataUrl || '',
     status: 'pending',
     submittedAt: serverTimestamp(),
   };
