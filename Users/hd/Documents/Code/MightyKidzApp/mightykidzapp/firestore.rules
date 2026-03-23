@@ -1,0 +1,229 @@
+rules_version = '2';
+
+/**
+ * @name MightyKidz Firestore Rules
+ * @file firestore.rules
+ *
+ * @description
+ * This ruleset is designed for the MightyKidz application.
+ *
+ * @core_philosophy
+ * The security model uses a custom authentication claim (`admin: true`) to grant
+ * administrator privileges. This is a secure and performant method that works
+ * correctly with all query types, including collection group queries. All
+ * read/write operations are restricted to authenticated users who have this
+ * admin claim.
+ *
+ * @data_structure
+ * Data is organized into several top-level collections: `/kids`, `/gifts`,
+ * `/volunteers`, etc. The `/admins` collection is now used as a trigger for
+ * a Cloud Function to grant admin privileges, rather than for live authorization.
+ *
+ * @key_security_decisions
+ * - Admin-Only Access via Custom Claims: The primary security principle is that
+ *   only users with a custom claim of `admin: true` on their authentication
+ *   token can access data. This avoids costly database reads in security rules
+ *   and is required for collection group queries to be properly secured.
+ * - Client-Side Admin Management Disabled: Rules explicitly prevent clients
+ *   from managing the `/admins` collection. Admin status must be managed by
+ *   adding/removing documents in the Firebase Console, which triggers a Cloud
+ *   Function to update user claims.
+ *
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks if the requesting user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the user is an administrator by looking for a custom claim.
+     * This is the required method for securely authorizing collection group queries.
+     * The `exists()` or `get()` methods are not permitted in collection group rules.
+     */
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    /**
+     * Verifies that a document exists for state-changing operations.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Ensures the internal 'id' field matches the document ID upon creation.
+     */
+    function isConsistentIdOnCreate(docId) {
+      return request.resource.data.id == docId;
+    }
+
+    /**
+     * Ensures the internal 'id' field is immutable upon update.
+     */
+    function isImmutableId() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Ensures the internal parent 'kidId' field matches the path upon creation.
+     */
+    function isConsistentParentLinkOnCreate(kidId) {
+      return request.resource.data.kidId == kidId;
+    }
+
+    /**
+     * Ensures the internal parent 'kidId' field is immutable upon update.
+     */
+    function isImmutableParentLink() {
+      return request.resource.data.kidId == resource.data.kidId;
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin Role-Based Access Control
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages admin role markers. Creating/deleting documents here
+     * triggers Cloud Functions to set/unset custom claims. Writes are disabled
+     * from the client to prevent self-promotion. Admin roles must be managed
+     * via the Firebase Console or a trusted backend.
+     * @path /admins/{adminUid}
+     */
+    match /admins/{adminUid} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Public & Pending Collections
+    // -------------------------------------------------------------------------
+    
+    /**
+     * @description Public-facing registration queue. Anyone can submit a new
+     * registration, but only admins can read or manage the documents.
+     * @path /pending_kids/{kidId}
+     */
+    match /pending_kids/{kidId} {
+      allow create: if request.resource.data.firstName is string
+                    && request.resource.data.lastName is string
+                    && request.resource.data.dateOfBirth is string
+                    && request.resource.data.gender is string
+                    && request.resource.data.parentName is string;
+      allow read, list, update, delete: if isAdmin();
+    }
+    
+    // -------------------------------------------------------------------------
+    // Core Data Collections
+    // -------------------------------------------------------------------------
+    
+    /**
+     * @description A log of all major activities (check-ins, redemptions) for
+     * fast querying on the dashboard. This is a collection group rule to allow
+     * for trend analysis.
+     * @path /{path=**}/activities/{activityId}
+     */
+    match /{path=**}/activities/{activityId} {
+      allow create: if isAdmin();
+      allow read: if isAdmin(); // Allows get and list
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Manages the profiles of children in the ministry.
+     * @path /kids/{kidId}
+     */
+    match /kids/{kidId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(kidId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+
+      /**
+       * @description Manages attendance records for a specific child.
+       * @path /kids/{kidId}/attendances/{attendanceId}
+       */
+      match /attendances/{attendanceId} {
+        allow get: if isAdmin();
+        allow list: if isAdmin();
+        allow create: if isAdmin() && isConsistentIdOnCreate(attendanceId) && isConsistentParentLinkOnCreate(kidId);
+        allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
+        allow delete: if isAdmin() && isExistingDoc();
+      }
+
+      /**
+       * @description Manages coin transaction records for a specific child.
+       * @path /kids/{kidId}/coinTransactions/{transactionId}
+       */
+      match /coinTransactions/{transactionId} {
+        allow get: if isAdmin();
+        allow list: if isAdmin();
+        allow create: if isAdmin() && isConsistentIdOnCreate(transactionId) && isConsistentParentLinkOnCreate(kidId);
+        allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
+        allow delete: if isAdmin() && isExistingDoc();
+      }
+
+      /**
+       * @description Manages gift redemption records for a specific child.
+       * @path /kids/{kidId}/redemptions/{redemptionId}
+       */
+      match /redemptions/{redemptionId} {
+        allow get: if isAdmin();
+        allow list: if isAdmin();
+        allow create: if isAdmin() && isConsistentIdOnCreate(redemptionId) && isConsistentParentLinkOnCreate(kidId);
+        allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
+        allow delete: if isAdmin() && isExistingDoc();
+      }
+    }
+
+    /**
+     * @description Manages the catalog of gifts available in the reward store.
+     * @path /gifts/{giftId}
+     */
+    match /gifts/{giftId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(giftId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages the profiles of ministry volunteers.
+     * @path /volunteers/{volunteerId}
+     */
+    match /volunteers/{volunteerId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(volunteerId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages the schedules for volunteers.
+     * @path /volunteerSchedules/{scheduleId}
+     */
+    match /volunteerSchedules/{scheduleId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(scheduleId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+  }
+}
