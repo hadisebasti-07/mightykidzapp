@@ -1,3 +1,4 @@
+
 'use client';
 
 import { db, auth } from './firebase/firebase';
@@ -37,14 +38,18 @@ export const submitPublicRegistration = async (data: KidFormValues) => {
 
   const registrationData = {
     id: newRegistrationRef.id,
-    ...data,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    nickname: data.nickname || '',
+    dateOfBirth: data.dateOfBirth,
+    gender: data.gender,
+    parentName: data.parentName,
+    parentPhone: data.parentPhone,
+    allergies: data.allergies || '',
+    medicalNotes: data.medicalNotes || '',
     status: 'pending',
     submittedAt: serverTimestamp(),
   };
-
-  // Remove fields that shouldn't be in the public submission
-  delete (registrationData as any).photoDataUrl;
-  delete (registrationData as any).coinsBalance;
 
   await setDoc(newRegistrationRef, registrationData);
 };

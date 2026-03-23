@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -152,6 +153,11 @@ export function KidForm({ kidToEdit, isPublic = false }: { kidToEdit?: Kid, isPu
   };
 
   async function onSubmit(data: KidFormValues) {
+    if (!isPublic && !data.className) {
+      form.setError("className", { type: "manual", message: "Class is a required field for admins." });
+      return;
+    }
+    
     if (isPublic) {
       try {
         await submitPublicRegistration(data);
@@ -365,60 +371,62 @@ export function KidForm({ kidToEdit, isPublic = false }: { kidToEdit?: Kid, isPu
             )}
           />
         </div>
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="className"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Class</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Assign a class" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="discoverer">Discoverer</SelectItem>
-                    <SelectItem value="explorer">Explorer</SelectItem>
-                    <SelectItem value="adventurer">Adventurer</SelectItem>
-                    <SelectItem value="warrior">Warrior</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="houseColor"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>House Color</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Assign a house color" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Red">Red</SelectItem>
-                    <SelectItem value="Green">Green</SelectItem>
-                    <SelectItem value="Blue">Blue</SelectItem>
-                    <SelectItem value="Yellow">Yellow</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        {!isPublic && (
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="className"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Assign a class" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="discoverer">Discoverer</SelectItem>
+                        <SelectItem value="explorer">Explorer</SelectItem>
+                        <SelectItem value="adventurer">Adventurer</SelectItem>
+                        <SelectItem value="warrior">Warrior</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="houseColor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>House Color</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Assign a house color" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Red">Red</SelectItem>
+                        <SelectItem value="Green">Green</SelectItem>
+                        <SelectItem value="Blue">Blue</SelectItem>
+                        <SelectItem value="Yellow">Yellow</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+        )}
 
         {!isPublic && kidToEdit && (
             <FormField
