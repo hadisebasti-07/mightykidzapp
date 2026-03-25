@@ -30,7 +30,9 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      // Force token refresh so custom claims (admin / welcomeIC) are picked up immediately
+      await user.getIdToken(true);
       toast({
         title: 'Login Successful',
         description: 'Welcome back!',

@@ -30,18 +30,15 @@ async function setRoleClaim(uid: string, role: string | null) {
   }
 }
 
-// ─── Admin role (legacy support if needed) ────────────────────────────────────
+// ─── Admin role ───────────────────────────────────────────────────────────────
 
 export const setAdminClaim = functions.firestore
   .document("admins/{uid}")
   .onCreate(async (snap, context) => {
     const { uid } = context.params;
-
     functions.logger.log(`Setting admin claim for user: ${uid}`);
-
     try {
       await setRoleClaim(uid, "admin");
-
       return snap.ref.set(
         { claimSetAt: admin.firestore.FieldValue.serverTimestamp() },
         { merge: true }
@@ -52,38 +49,16 @@ export const setAdminClaim = functions.firestore
     }
   });
 
-// ─── Unified role manager ─────────────────────────────────────────────────────
-
-export const manageRoleClaim = functions.firestore
+export const removeAdminClaim = functions.firestore
   .document("admins/{uid}")
-  .onWrite(async (change, context) => {
+  .onDelete(async (snap, context) => {
     const { uid } = context.params;
-
-    // On create/update
-    if (change.after.exists) {
-      const data = change.after.data();
-      const role = data?.role;
-
-      if (role === "admin" || role === "welcome_ic") {
-        functions.logger.log(`Setting role for ${uid}: ${role}`);
-
-        await setRoleClaim(uid, role);
-
-        await change.after.ref.set(
-          { claimSetAt: admin.firestore.FieldValue.serverTimestamp() },
-          { merge: true }
-        );
-      } else {
-        functions.logger.log(`Invalid role for ${uid}. Removing role claims.`);
-        await setRoleClaim(uid, null);
-      }
-    } 
-    // On delete
-    else {
-      functions.logger.log(`Document deleted for ${uid}. Removing role claims.`);
+    functions.logger.log(`Removing admin claim for user: ${uid}`);
+    try {
       await setRoleClaim(uid, null);
+    } catch (error) {
+      functions.logger.error(`Error removing admin claim for ${uid}:`, error);
     }
-
     return null;
   });
 

@@ -141,7 +141,7 @@ service cloud.firestore {
      */
     match /{path=**}/activities/{activityId} {
       allow create: if isAdmin() || isWelcomeIC();
-      allow read: if isAdmin();
+      allow read: if isAdmin() || isWelcomeIC();
       allow update: if false;
       allow delete: if false;
     }
