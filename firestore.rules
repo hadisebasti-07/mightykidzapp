@@ -153,7 +153,7 @@ service cloud.firestore {
     match /kids/{kidId} {
       allow get: if isAdmin() || isWelcomeIC();
       allow list: if isAdmin() || isWelcomeIC();
-      allow create: if isAdmin() && isConsistentIdOnCreate(kidId);
+      allow create: if isConsistentIdOnCreate(kidId);
       allow update: if (isAdmin() || isWelcomeIC()) && isExistingDoc() && isImmutableId();
       allow delete: if isAdmin() && isExistingDoc();
 
