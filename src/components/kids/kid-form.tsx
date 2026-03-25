@@ -41,7 +41,7 @@ import { Kid } from '@/lib/types';
 import { kidFormSchema, type KidFormValues } from '@/lib/schemas';
 
 
-export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
+export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?: () => void }) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -166,7 +166,11 @@ export function KidForm({ kidToEdit }: { kidToEdit?: Kid }) {
           title: 'Kid Profile Created',
           description: `The profile for ${data.firstName} ${data.lastName} has been created.`,
         });
-        router.push('/kids');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push('/kids');
+        }
       }
     } catch (e: any) {
       toast({

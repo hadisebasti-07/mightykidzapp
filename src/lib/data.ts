@@ -33,6 +33,17 @@ const forceTokenRefresh = async () => {
   }
 };
 
+/**
+ * Writes a document to /welcomeICs/{uid} so the Cloud Function can set
+ * the `welcomeIC: true` custom claim on the user's token.
+ */
+export async function registerAsWelcomeIC(uid: string): Promise<void> {
+  await setDoc(doc(db, 'welcomeICs', uid), {
+    uid,
+    createdAt: new Date().toISOString(),
+  });
+}
+
 export const addKid = async (data: KidFormValues) => {
   await forceTokenRefresh();
   const dateString = data.dateOfBirth;

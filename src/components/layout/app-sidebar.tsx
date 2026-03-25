@@ -22,25 +22,22 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signOut, auth } from '@/lib/firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import type { UserRole } from '@/hooks/use-auth';
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  roles: UserRole[];
-};
+const adminNavItems = [
+  { href: '/', label: 'Check-In', icon: ScanLine },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/kids', label: 'Kids', icon: Users },
+  { href: '/store', label: 'Store', icon: Gift },
+  { href: '/volunteers', label: 'Volunteers', icon: ClipboardList },
+];
 
-const allNavItems: NavItem[] = [
-  { href: '/', label: 'Check-In', icon: ScanLine, roles: ['admin', 'welcome_ic'] },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
-  { href: '/kids', label: 'Kids', icon: Users, roles: ['admin'] },
-  { href: '/store', label: 'Store', icon: Gift, roles: ['admin', 'welcome_ic'] },
-  { href: '/volunteers', label: 'Volunteers', icon: ClipboardList, roles: ['admin'] },
+const welcomeICNavItems = [
+  { href: '/', label: 'Check-In', icon: ScanLine },
+  { href: '/store', label: 'Store', icon: Gift },
 ];
 
 export function AppSidebar() {
@@ -54,10 +51,13 @@ export function AppSidebar() {
     setMounted(true);
   }, []);
 
-  const navItems = useMemo(() => {
-    if (!role) return [];
-    return allNavItems.filter(item => item.roles.includes(role));
-  }, [role]);
+  // ✅ Single source of truth
+  const navItems =
+    role === 'welcomeIC'
+      ? welcomeICNavItems
+      : role === 'admin'
+      ? adminNavItems
+      : [];
 
   const handleLogout = async () => {
     try {
@@ -82,12 +82,12 @@ export function AppSidebar() {
       <SidebarHeader className="flex flex-col items-center gap-2 pb-4 pt-3 text-center">
         <Logo />
         <div className="flex flex-col">
-            <h2 className="text-xl font-bold tracking-tighter text-sidebar-foreground">
-                MightyKidz
-            </h2>
-            <p className="text-xs text-sidebar-foreground/50">
-                Ministry Management
-            </p>
+          <h2 className="text-xl font-bold tracking-tighter text-sidebar-foreground">
+            MightyKidz
+          </h2>
+          <p className="text-xs text-sidebar-foreground/50">
+            Ministry Management
+          </p>
         </div>
       </SidebarHeader>
 
@@ -98,7 +98,8 @@ export function AppSidebar() {
               mounted &&
               (item.href === '/'
                 ? pathname === item.href
-                : item.href !== '/' && pathname.startsWith(item.href));
+                : pathname.startsWith(item.href));
+
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
@@ -125,20 +126,23 @@ export function AppSidebar() {
           <Avatar className="size-9 ring-2 ring-sidebar-primary/40">
             <AvatarImage
               src="https://picsum.photos/seed/admin/100/100"
-              alt="Admin"
+              alt="User"
             />
             <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-bold">
-              AD
+              {role === 'admin' ? 'AD' : 'WI'}
             </AvatarFallback>
           </Avatar>
+
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
-              {user?.displayName || user?.email?.split('@')[0] || 'User'}
+              {user?.displayName ||
+                (role === 'admin' ? 'Admin User' : 'Welcome IC')}
             </p>
             <p className="truncate text-xs text-sidebar-foreground/50">
               {role === 'admin' ? 'Administrator' : 'Welcome IC'}
             </p>
           </div>
+
           <SidebarMenuButton
             size="icon"
             variant="ghost"

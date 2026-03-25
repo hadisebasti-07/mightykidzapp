@@ -4,43 +4,123 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-const setRoleClaim = async (uid: string, role: string | null) => {
-  const claims = role ? { role } : null;
+// ─── Helper: Set role claims safely ───────────────────────────────────────────
+
+async function setRoleClaim(uid: string, role: string | null) {
   try {
-    await admin.auth().setCustomUserClaims(uid, claims);
-    if (claims) {
-      functions.logger.log(`✅ Success! Custom claim { role: "${role}" } set for user: ${uid}`);
-    } else {
-      functions.logger.log(`✅ Success! Custom claims removed for user: ${uid}`);
+    const user = await admin.auth().getUser(uid);
+    const existingClaims = user.customClaims || {};
+
+    let newClaims = { ...existingClaims };
+
+    // Reset role-related claims
+    delete newClaims.admin;
+    delete newClaims.welcomeIC;
+
+    if (role === "admin") {
+      newClaims.admin = true;
+    } else if (role === "welcome_ic") {
+      newClaims.welcomeIC = true;
     }
+
+    await admin.auth().setCustomUserClaims(uid, newClaims);
+    functions.logger.log(`✅ Updated claims for ${uid}:`, newClaims);
   } catch (error) {
-    functions.logger.error(`Error setting custom claim for ${uid}:`, error);
+    functions.logger.error(`Error setting role claim for ${uid}:`, error);
   }
-};
+}
+
+// ─── Admin role (legacy support if needed) ────────────────────────────────────
+
+export const setAdminClaim = functions.firestore
+  .document("admins/{uid}")
+  .onCreate(async (snap, context) => {
+    const { uid } = context.params;
+
+    functions.logger.log(`Setting admin claim for user: ${uid}`);
+
+    try {
+      await setRoleClaim(uid, "admin");
+
+      return snap.ref.set(
+        { claimSetAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    } catch (error) {
+      functions.logger.error(`Error setting admin claim for ${uid}:`, error);
+      return null;
+    }
+  });
+
+// ─── Unified role manager ─────────────────────────────────────────────────────
 
 export const manageRoleClaim = functions.firestore
   .document("admins/{uid}")
   .onWrite(async (change, context) => {
     const { uid } = context.params;
 
-    // On create or update
+    // On create/update
     if (change.after.exists) {
       const data = change.after.data();
-      const role = data?.role; // e.g., 'admin', 'welcome_ic'
+      const role = data?.role;
 
-      if (role && (role === 'admin' || role === 'welcome_ic')) {
-        functions.logger.log(`Setting role claim for user: ${uid} to "${role}"`);
+      if (role === "admin" || role === "welcome_ic") {
+        functions.logger.log(`Setting role for ${uid}: ${role}`);
+
         await setRoleClaim(uid, role);
-        await change.after.ref.set({ claimSetAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+
+        await change.after.ref.set(
+          { claimSetAt: admin.firestore.FieldValue.serverTimestamp() },
+          { merge: true }
+        );
       } else {
-        // If role is invalid or removed, strip claims.
-        functions.logger.log(`No valid role found for ${uid}. Removing claims.`);
+        functions.logger.log(`Invalid role for ${uid}. Removing role claims.`);
         await setRoleClaim(uid, null);
       }
     } 
     // On delete
     else {
-      functions.logger.log(`Admin document for ${uid} deleted. Removing claims.`);
+      functions.logger.log(`Document deleted for ${uid}. Removing role claims.`);
       await setRoleClaim(uid, null);
     }
+
+    return null;
+  });
+
+// ─── Welcome IC role (separate collection) ────────────────────────────────────
+
+export const setWelcomeICClaim = functions.firestore
+  .document("welcomeICs/{uid}")
+  .onCreate(async (snap, context) => {
+    const { uid } = context.params;
+
+    functions.logger.log(`Setting welcomeIC claim for user: ${uid}`);
+
+    try {
+      await setRoleClaim(uid, "welcome_ic");
+
+      return snap.ref.set(
+        { claimSetAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    } catch (error) {
+      functions.logger.error(`Error setting welcomeIC claim for ${uid}:`, error);
+      return null;
+    }
+  });
+
+export const removeWelcomeICClaim = functions.firestore
+  .document("welcomeICs/{uid}")
+  .onDelete(async (snap, context) => {
+    const { uid } = context.params;
+
+    functions.logger.log(`Removing welcomeIC claim for user: ${uid}`);
+
+    try {
+      await setRoleClaim(uid, null);
+    } catch (error) {
+      functions.logger.error(`Error removing welcomeIC claim for ${uid}:`, error);
+    }
+
+    return null;
   });

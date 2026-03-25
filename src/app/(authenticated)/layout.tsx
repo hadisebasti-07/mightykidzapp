@@ -1,30 +1,45 @@
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Header } from '@/components/layout/header';
+
+// Routes that only admins can access
+const ADMIN_ONLY_PATHS = ['/dashboard', '/kids', '/volunteers', '/store/manage', '/store/gift'];
 
 export default function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/login');
+    if (loading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (role === 'welcomeIC') {
+      const restricted = ADMIN_ONLY_PATHS.some((p) => pathname.startsWith(p));
+      if (restricted) {
+        router.push('/');
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, role, router, pathname]);
 
   if (loading || !user) {
     return null;
+  }
+
+  if (role === 'welcomeIC') {
+    const restricted = ADMIN_ONLY_PATHS.some((p) => pathname.startsWith(p));
+    if (restricted) return null;
   }
 
   return (

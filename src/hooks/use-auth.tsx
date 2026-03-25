@@ -5,36 +5,47 @@ import { onIdTokenChanged, User } from '@/lib/firebase/auth';
 import { auth } from '@/lib/firebase/auth';
 import { Loader2 } from 'lucide-react';
 
-export type UserRole = 'admin' | 'welcome_ic';
+export type Role = 'admin' | 'welcomeIC' | null;
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  role: UserRole | null;
+  role: Role;
+  isAdmin: boolean;
+  isWelcomeIC: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   role: null,
+  isAdmin: false,
+  isWelcomeIC: false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        setUser(user);
-        const idTokenResult = await user.getIdTokenResult();
-        const userRole = (idTokenResult.claims.role as UserRole) || null;
-        setRole(userRole);
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+
+      if (firebaseUser) {
+        const tokenResult = await firebaseUser.getIdTokenResult();
+
+        if (tokenResult.claims.admin) {
+          setRole('admin');
+        } else if (tokenResult.claims.welcomeIC) {
+          setRole('welcomeIC');
+        } else {
+          setRole(null);
+        }
       } else {
-        setUser(null);
         setRole(null);
       }
+
       setLoading(false);
     });
 
@@ -50,7 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, role }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        role,
+        isAdmin: role === 'admin',
+        isWelcomeIC: role === 'welcomeIC',
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

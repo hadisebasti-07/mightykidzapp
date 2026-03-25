@@ -54,6 +54,14 @@ service cloud.firestore {
     }
 
     /**
+     * Checks if the user has the Welcome IC role.
+     * Welcome ICs can perform check-ins and gift redemptions only.
+     */
+    function isWelcomeIC() {
+      return isSignedIn() && request.auth.token.welcomeIC == true;
+    }
+
+    /**
      * Verifies that a document exists for state-changing operations.
      */
     function isExistingDoc() {
@@ -107,6 +115,20 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    /**
+     * @description Manages Welcome IC role markers. Users can create their own
+     * document here during registration, which triggers a Cloud Function to set
+     * the `welcomeIC: true` custom claim. Deletion is admin-only.
+     * @path /welcomeICs/{uid}
+     */
+    match /welcomeICs/{uid} {
+      allow get: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
     // -------------------------------------------------------------------------
     // Core Data Collections
     // -------------------------------------------------------------------------
@@ -118,8 +140,8 @@ service cloud.firestore {
      * @path /{path=**}/activities/{activityId}
      */
     match /{path=**}/activities/{activityId} {
-      allow create: if isAdmin();
-      allow read: if isAdmin(); // Allows get and list
+      allow create: if isAdmin() || isWelcomeIC();
+      allow read: if isAdmin();
       allow update: if false;
       allow delete: if false;
     }
@@ -129,10 +151,10 @@ service cloud.firestore {
      * @path /kids/{kidId}
      */
     match /kids/{kidId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin() && isConsistentIdOnCreate(kidId);
-      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow get: if isAdmin() || isWelcomeIC();
+      allow list: if isAdmin() || isWelcomeIC();
+      allow create: if isConsistentIdOnCreate(kidId);
+      allow update: if (isAdmin() || isWelcomeIC()) && isExistingDoc() && isImmutableId();
       allow delete: if isAdmin() && isExistingDoc();
 
       /**
@@ -140,9 +162,9 @@ service cloud.firestore {
        * @path /kids/{kidId}/attendances/{attendanceId}
        */
       match /attendances/{attendanceId} {
-        allow get: if isAdmin();
-        allow list: if isAdmin();
-        allow create: if isAdmin() && isConsistentIdOnCreate(attendanceId) && isConsistentParentLinkOnCreate(kidId);
+        allow get: if isAdmin() || isWelcomeIC();
+        allow list: if isAdmin() || isWelcomeIC();
+        allow create: if (isAdmin() || isWelcomeIC()) && isConsistentIdOnCreate(attendanceId) && isConsistentParentLinkOnCreate(kidId);
         allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
         allow delete: if isAdmin() && isExistingDoc();
       }
@@ -152,9 +174,9 @@ service cloud.firestore {
        * @path /kids/{kidId}/coinTransactions/{transactionId}
        */
       match /coinTransactions/{transactionId} {
-        allow get: if isAdmin();
-        allow list: if isAdmin();
-        allow create: if isAdmin() && isConsistentIdOnCreate(transactionId) && isConsistentParentLinkOnCreate(kidId);
+        allow get: if isAdmin() || isWelcomeIC();
+        allow list: if isAdmin() || isWelcomeIC();
+        allow create: if (isAdmin() || isWelcomeIC()) && isConsistentIdOnCreate(transactionId) && isConsistentParentLinkOnCreate(kidId);
         allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
         allow delete: if isAdmin() && isExistingDoc();
       }
@@ -164,9 +186,9 @@ service cloud.firestore {
        * @path /kids/{kidId}/redemptions/{redemptionId}
        */
       match /redemptions/{redemptionId} {
-        allow get: if isAdmin();
-        allow list: if isAdmin();
-        allow create: if isAdmin() && isConsistentIdOnCreate(redemptionId) && isConsistentParentLinkOnCreate(kidId);
+        allow get: if isAdmin() || isWelcomeIC();
+        allow list: if isAdmin() || isWelcomeIC();
+        allow create: if (isAdmin() || isWelcomeIC()) && isConsistentIdOnCreate(redemptionId) && isConsistentParentLinkOnCreate(kidId);
         allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
         allow delete: if isAdmin() && isExistingDoc();
       }
@@ -177,10 +199,10 @@ service cloud.firestore {
      * @path /gifts/{giftId}
      */
     match /gifts/{giftId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
+      allow get: if isAdmin() || isWelcomeIC();
+      allow list: if isAdmin() || isWelcomeIC();
       allow create: if isAdmin() && isConsistentIdOnCreate(giftId);
-      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow update: if (isAdmin() || isWelcomeIC()) && isExistingDoc() && isImmutableId();
       allow delete: if isAdmin() && isExistingDoc();
     }
 

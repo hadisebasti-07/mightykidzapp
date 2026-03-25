@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls -la /Users/hd/Documents/Code/MightyKidzApp/mightykidzapp/src/app/\\\\\\(authenticated\\\\\\)/)"
+      "Bash(ls -la /Users/hd/Documents/Code/MightyKidzApp/mightykidzapp/src/app/\\\\\\(authenticated\\\\\\)/)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
