@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { auth, signInWithEmailAndPassword } from '@/lib/firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
@@ -92,7 +93,7 @@ export default function LoginPage() {
               />
             </div>
           </CardContent>
-          <CardFooter className="pt-2">
+          <CardFooter className="flex flex-col gap-3 pt-2">
             <Button
               type="submit"
               className="h-12 w-full text-base font-semibold"
@@ -103,6 +104,12 @@ export default function LoginPage() {
               ) : null}
               Sign In
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="text-primary underline-offset-4 hover:underline">
+                Register
+              </Link>
+            </p>
           </CardFooter>
         </form>
       </Card>

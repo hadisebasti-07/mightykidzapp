@@ -27,7 +27,7 @@ import { signOut, auth } from '@/lib/firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
-const navItems = [
+const adminNavItems = [
   { href: '/', label: 'Check-In', icon: ScanLine },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/kids', label: 'Kids', icon: Users },
@@ -35,11 +35,17 @@ const navItems = [
   { href: '/volunteers', label: 'Volunteers', icon: ClipboardList },
 ];
 
+const welcomeICNavItems = [
+  { href: '/', label: 'Check-In', icon: ScanLine },
+  { href: '/store', label: 'Store', icon: Gift },
+];
+
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const navItems = role === 'welcomeIC' ? welcomeICNavItems : adminNavItems;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -120,7 +126,7 @@ export function AppSidebar() {
           </Avatar>
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
-              {user?.displayName || 'Admin User'}
+              {user?.displayName || (role === 'admin' ? 'Admin User' : 'Welcome IC')}
             </p>
             <p className="truncate text-xs text-sidebar-foreground/50">
               {user?.email}
