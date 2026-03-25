@@ -74,6 +74,68 @@ export const kidImportSchema = z.object({
 export type KidImportValues = z.infer<typeof kidImportSchema>;
 
 
+// ─── Public kid registration (no auth required) ───────────────────────────────
+// Stricter validation: max lengths, character allowlists, date range checks.
+// className, houseColor, coinsBalance intentionally excluded — admin assigns.
+
+const nameField = (label: string, max = 50) =>
+  z
+    .string()
+    .min(2, `${label} must be at least 2 characters.`)
+    .max(max, `${label} must be ${max} characters or less.`)
+    .regex(/^[\p{L}\s'\-]+$/u, `${label} contains invalid characters.`)
+    .transform((v) => v.trim());
+
+export const publicKidRegistrationSchema = z.object({
+  photoDataUrl: z
+    .string()
+    .refine(
+      (v) => !v || v.length <= 1_500_000,
+      'Photo is too large. Please use a smaller image.'
+    )
+    .optional(),
+  firstName: nameField('First name'),
+  lastName: nameField('Last name'),
+  nickname: z
+    .string()
+    .max(30, 'Nickname must be 30 characters or less.')
+    .regex(/^[\p{L}\s'\-]*$/u, 'Nickname contains invalid characters.')
+    .transform((v) => v.trim())
+    .optional(),
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format.')
+    .refine((v) => {
+      const d = new Date(v);
+      return !isNaN(d.getTime()) && d < new Date();
+    }, 'Date of birth must be in the past.')
+    .refine((v) => {
+      const d = new Date(v);
+      const limit = new Date();
+      limit.setFullYear(limit.getFullYear() - 18);
+      return d >= limit;
+    }, 'Child must be 18 years old or younger.'),
+  gender: z.enum(['Male', 'Female']),
+  parentName: nameField('Parent name', 100),
+  parentPhone: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ''))
+    .refine((v) => v.length >= 8, 'Phone number must be at least 8 digits.')
+    .refine((v) => v.length <= 15, 'Phone number must be at most 15 digits.'),
+  allergies: z
+    .string()
+    .max(500, 'Allergies must be 500 characters or less.')
+    .transform((v) => v.trim())
+    .optional(),
+  medicalNotes: z
+    .string()
+    .max(1000, 'Medical notes must be 1000 characters or less.')
+    .transform((v) => v.trim())
+    .optional(),
+});
+
+export type PublicKidRegistrationValues = z.infer<typeof publicKidRegistrationSchema>;
+
 export const giftFormSchema = z.object({
     name: z.string().min(2, { message: 'Gift name must be at least 2 characters.' }),
     description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),

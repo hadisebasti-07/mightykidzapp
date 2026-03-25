@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { KidForm } from '@/components/kids/kid-form';
+import { PublicKidForm } from '@/components/kids/public-kid-form';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
@@ -48,7 +48,7 @@ export default function RegisterKidPage() {
             <p className="mb-6 text-sm text-muted-foreground">
               Fill out the form below to register a child.
             </p>
-            <KidForm onSuccess={() => setRegistered(true)} />
+            <PublicKidForm onSuccess={() => setRegistered(true)} />
           </div>
         )}
       </div>

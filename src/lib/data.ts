@@ -21,7 +21,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
-import { type KidFormValues, type GiftFormValues, kidImportSchema } from './schemas';
+import { type KidFormValues, type GiftFormValues, type PublicKidRegistrationValues, kidImportSchema } from './schemas';
 import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
 
@@ -32,6 +32,35 @@ const forceTokenRefresh = async () => {
     await user.getIdToken(true);
   }
 };
+
+/**
+ * Creates a kid profile from the public registration form (no auth required).
+ * className, houseColor, and coinsBalance are set to defaults — admin assigns later.
+ */
+export async function addKidPublic(data: PublicKidRegistrationValues): Promise<void> {
+  const newKidRef = doc(collection(db, 'kids'));
+  const dateString = data.dateOfBirth;
+  const newKidData = {
+    id: newKidRef.id,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    nickname: data.nickname || '',
+    dateOfBirth: dateString,
+    gender: data.gender,
+    parentName: data.parentName,
+    parentPhone: data.parentPhone,
+    allergies: data.allergies || '',
+    medicalNotes: data.medicalNotes || '',
+    photoUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
+    coinsBalance: 0,
+    totalAttendance: 0,
+    birthdayMonth: parseInt(dateString.split('-')[1], 10),
+    createdAt: new Date().toISOString(),
+    className: '',
+    houseColor: '',
+  };
+  await setDoc(newKidRef, newKidData);
+}
 
 /**
  * Writes a document to /welcomeICs/{uid} so the Cloud Function can set
