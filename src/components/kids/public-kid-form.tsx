@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Camera, UserCircle2, CameraOff } from 'lucide-react';
+import { Camera, UserCircle2, CameraOff, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -130,6 +130,14 @@ export function PublicKidForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Purpose Statement</AlertTitle>
+          <AlertDescription>
+            We collect this data to ensure your child's safety and to manage class activities. By submitting this form, you consent to our use of this data for ministry purposes.
+          </AlertDescription>
+        </Alert>
+
         {/* Photo */}
         <FormField
           control={form.control}
