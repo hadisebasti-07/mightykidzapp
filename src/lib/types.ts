@@ -57,6 +57,13 @@ export type DashboardStats = {
   totalGiftStock: number;
 };
 
+export type HouseScore = {
+  id: string;       // 'red' | 'blue' | 'yellow' | 'green'
+  color: string;
+  points: number;
+  updatedAt: string;
+};
+
 export const chartConfig = {
   attendance: {
     label: 'Attendance',

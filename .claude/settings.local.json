@@ -3,7 +3,12 @@
     "allow": [
       "Bash(ls -la /Users/hd/Documents/Code/MightyKidzApp/mightykidzapp/src/app/\\\\\\(authenticated\\\\\\)/)",
       "mcp__ide__getDiagnostics",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --noEmit)"
     ]
   }
 }

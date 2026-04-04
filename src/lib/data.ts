@@ -20,7 +20,7 @@ import {
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
-import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats } from './types';
+import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats, HouseScore } from './types';
 import { type KidFormValues, type GiftFormValues, type PublicKidRegistrationValues, kidImportSchema } from './schemas';
 import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
@@ -760,4 +760,48 @@ export const getAttendanceTrend = async (): Promise<{ date: string; attendance: 
       attendance: 0,
     }));
   }
+};
+
+// ─── House Scores ─────────────────────────────────────────────────────────────
+
+const HOUSE_IDS = ['red', 'blue', 'yellow', 'green'] as const;
+
+export const getHouseScores = async (): Promise<HouseScore[]> => {
+  await forceTokenRefresh();
+  const results: HouseScore[] = [];
+  for (const id of HOUSE_IDS) {
+    try {
+      const ref = doc(db, 'houseScores', id);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        results.push(snap.data() as HouseScore);
+      } else {
+        results.push({ id, color: id, points: 0, updatedAt: new Date().toISOString() });
+      }
+    } catch {
+      results.push({ id, color: id, points: 0, updatedAt: new Date().toISOString() });
+    }
+  }
+  return results;
+};
+
+export const addHousePoints = async (houseId: string, points: number): Promise<void> => {
+  const ref = doc(db, 'houseScores', houseId);
+  // setDoc with merge uses a single atomic write — no read needed
+  await setDoc(ref, {
+    id: houseId,
+    color: houseId,
+    points: increment(points),
+    updatedAt: new Date().toISOString(),
+  }, { merge: true });
+};
+
+export const resetHousePoints = async (houseId: string): Promise<void> => {
+  const ref = doc(db, 'houseScores', houseId);
+  await setDoc(ref, {
+    id: houseId,
+    color: houseId,
+    points: 0,
+    updatedAt: new Date().toISOString(),
+  });
 };

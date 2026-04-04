@@ -229,5 +229,16 @@ service cloud.firestore {
       allow update: if isAdmin() && isExistingDoc() && isImmutableId();
       allow delete: if isAdmin() && isExistingDoc();
     }
+
+    /**
+     * @description Manages house competition scores (red, blue, yellow, green).
+     * @path /houseScores/{houseId}
+     */
+    match /houseScores/{houseId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && isExistingDoc();
+      allow delete: if isAdmin();
+    }
   }
 }
