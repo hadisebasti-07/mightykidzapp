@@ -131,8 +131,9 @@ function KidsPage() {
 
       const headers = [
         'id', 'firstName', 'lastName', 'nickname', 'dateOfBirth', 'gender',
-        'className', 'houseColor', 'parentName', 'parentPhone', 'allergies',
-        'medicalNotes', 'coinsBalance', 'totalAttendance', 'createdAt'
+        'email', 'className', 'houseColor',
+        'parentName', 'parentPhone', 'parent2Name', 'parent2Phone',
+        'allergies', 'medicalNotes', 'coinsBalance', 'totalAttendance', 'createdAt'
       ];
       
       const escapeCsvCell = (cellData: any) => {

@@ -5,8 +5,11 @@ export type Kid = {
   nickname?: string;
   dateOfBirth: string;
   gender: 'Male' | 'Female';
+  email?: string;
   parentName: string;
   parentPhone: string;
+  parent2Name?: string;
+  parent2Phone?: string;
   allergies?: string;
   medicalNotes?: string;
   photoUrl: string;
@@ -16,6 +19,7 @@ export type Kid = {
   createdAt: string;
   className?: string;
   houseColor?: string;
+  barcode?: string;
 };
 
 export type Gift = {

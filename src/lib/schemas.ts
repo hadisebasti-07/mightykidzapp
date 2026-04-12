@@ -12,11 +12,15 @@ export const kidFormSchema = z.object({
     required_error: "You need to select a class.",
   }),
   houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
+  email: z.string().email({ message: 'Please enter a valid email address.' }).optional().or(z.literal('')),
   parentName: z.string().min(2, { message: 'Parent name is required.' }),
   parentPhone: z.string().min(8, { message: 'Phone number must be at least 8 digits.' }),
+  parent2Name: z.string().optional(),
+  parent2Phone: z.string().optional(),
   allergies: z.string().optional(),
   medicalNotes: z.string().optional(),
   coinsBalance: z.coerce.number().int().min(0, { message: "Coins balance cannot be negative." }),
+  barcode: z.string().optional(),
 });
 
 export type KidFormValues = z.infer<typeof kidFormSchema>;
@@ -40,10 +44,15 @@ export const kidImportSchema = z.object({
       errorMap: () => ({ message: "Gender must be 'Male' or 'Female'" }),
     })
   ),
+  email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
   parentName: z.string().min(1, { message: 'parentName is required' }),
   parentPhone: z.string().transform(val => (val || '').replace(/\D/g, '')).refine(val => val.length === 0 || val.length >= 8, {
     message: 'Phone number must be empty or have at least 8 digits.'
   }),
+  parent2Name: z.string().optional(),
+  parent2Phone: z.string().transform(val => (val || '').replace(/\D/g, '')).refine(val => val.length === 0 || val.length >= 8, {
+    message: 'Phone number must be empty or have at least 8 digits.'
+  }).optional(),
   className: z.preprocess(
     (val) => (typeof val === 'string' ? val.trim().toLowerCase() : val),
     z.enum(['discoverer', 'explorer', 'adventurer', 'warrior'], {
@@ -116,12 +125,30 @@ export const publicKidRegistrationSchema = z.object({
       return d >= limit;
     }, 'Child must be 18 years old or younger.'),
   gender: z.enum(['Male', 'Female']),
-  parentName: nameField('Parent name', 100),
+  email: z
+    .string()
+    .email('Please enter a valid email address.')
+    .max(100, 'Email must be 100 characters or less.')
+    .optional()
+    .or(z.literal('')),
+  parentName: nameField('Parent 1 name', 100),
   parentPhone: z
     .string()
     .transform((v) => v.replace(/\D/g, ''))
     .refine((v) => v.length >= 8, 'Phone number must be at least 8 digits.')
     .refine((v) => v.length <= 15, 'Phone number must be at most 15 digits.'),
+  parent2Name: z
+    .string()
+    .max(100, 'Parent 2 name must be 100 characters or less.')
+    .regex(/^[\p{L}\s'\-]*$/u, 'Name contains invalid characters.')
+    .transform((v) => v.trim())
+    .optional(),
+  parent2Phone: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ''))
+    .refine((v) => v.length === 0 || v.length >= 8, 'Phone number must be at least 8 digits.')
+    .refine((v) => v.length === 0 || v.length <= 15, 'Phone number must be at most 15 digits.')
+    .optional(),
   allergies: z
     .string()
     .max(500, 'Allergies must be 500 characters or less.')

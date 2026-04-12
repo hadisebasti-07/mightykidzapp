@@ -47,8 +47,11 @@ export async function addKidPublic(data: PublicKidRegistrationValues): Promise<v
     nickname: data.nickname || '',
     dateOfBirth: dateString,
     gender: data.gender,
+    email: data.email || '',
     parentName: data.parentName,
     parentPhone: data.parentPhone,
+    parent2Name: data.parent2Name || '',
+    parent2Phone: data.parent2Phone || '',
     allergies: data.allergies || '',
     medicalNotes: data.medicalNotes || '',
     photoUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
@@ -85,8 +88,11 @@ export const addKid = async (data: KidFormValues) => {
     nickname: data.nickname || '',
     dateOfBirth: dateString,
     gender: data.gender,
+    email: data.email || '',
     parentName: data.parentName,
     parentPhone: data.parentPhone,
+    parent2Name: data.parent2Name || '',
+    parent2Phone: data.parent2Phone || '',
     allergies: data.allergies || '',
     medicalNotes: data.medicalNotes || '',
     photoUrl: data.photoDataUrl || `https://picsum.photos/seed/${data.firstName}${data.lastName}/400/400`,
@@ -120,8 +126,9 @@ export const importKids = async (csvData: string) => {
   const errors: { line: number; error: string; data: string }[] = [];
 
   const headers = [
-    'id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'parentName', 'parentPhone', 
-    'className', 'houseColor', 'nickname', 'allergies', 'medicalNotes', 'photoUrl', 
+    'id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'email',
+    'parentName', 'parentPhone', 'parent2Name', 'parent2Phone',
+    'className', 'houseColor', 'nickname', 'allergies', 'medicalNotes', 'photoUrl',
     'coinsBalance', 'totalAttendance'
   ];
 
@@ -152,8 +159,11 @@ export const importKids = async (csvData: string) => {
       lastName: data.lastName,
       dateOfBirth: data.dateOfBirth,
       gender: data.gender,
+      email: data.email || '',
       parentName: data.parentName,
       parentPhone: data.parentPhone,
+      parent2Name: data.parent2Name || '',
+      parent2Phone: data.parent2Phone || '',
       className: data.className,
       houseColor: data.houseColor || '',
       nickname: data.nickname || '',

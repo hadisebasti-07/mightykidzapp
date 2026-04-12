@@ -137,3 +137,25 @@
 .animate-ball-drop  { animation: ball-drop  0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 .animate-tube-shake { animation: tube-shake 0.5s ease-in-out; }
 .animate-score-pop  { animation: score-pop  0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-14px) rotate(8deg); }
+}
+@keyframes float-alt {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(10px) rotate(-6deg); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-8deg); }
+  50%       { transform: rotate(8deg); }
+}
+
+.animate-float      { animation: float      5s ease-in-out infinite; }
+.animate-float-alt  { animation: float-alt  4s ease-in-out infinite; }
+.animate-spin-slow  { animation: spin-slow 16s linear infinite; }
+.animate-wiggle     { animation: wiggle     2s ease-in-out infinite; }

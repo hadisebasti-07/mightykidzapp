@@ -14,7 +14,11 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: 'MightyKidz',
-  description: 'Church Children’s Ministry Management',
+  description: "Church Children's Ministry Management",
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

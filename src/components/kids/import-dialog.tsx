@@ -90,8 +90,8 @@ export function ImportKidsDialog() {
     }
   };
 
-  const csvHeaders = `id,firstName,lastName,dateOfBirth,gender,parentName,parentPhone,className,houseColor,nickname,allergies,medicalNotes,photoUrl,coinsBalance,totalAttendance`;
-  const exampleCsv = `kid001,Liam,Smith,2018-05-12,Male,Emma Smith,1112223333,explorer,Blue,Li,,,https://example.com/photo.jpg,100,5`;
+  const csvHeaders = `id,firstName,lastName,dateOfBirth,gender,email,parentName,parentPhone,parent2Name,parent2Phone,className,houseColor,nickname,allergies,medicalNotes,photoUrl,coinsBalance,totalAttendance`;
+  const exampleCsv = `kid001,Liam,Smith,2018-05-12,Male,family@email.com,Emma Smith,1112223333,John Smith,4445556666,explorer,Blue,Li,,,https://example.com/photo.jpg,100,5`;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

@@ -57,8 +57,11 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
         nickname: '',
         dateOfBirth: '',
         gender: 'Male',
+        email: '',
         parentName: '',
         parentPhone: '',
+        parent2Name: '',
+        parent2Phone: '',
         allergies: '',
         medicalNotes: '',
         className: undefined,
@@ -409,6 +412,25 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
         {kidToEdit && (
             <FormField
               control={form.control}
+              name="barcode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Barcode ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="MKC-001-240101" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormDescription>
+                    The barcode printed on this child's badge (e.g. MKC-064-240222).
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        )}
+
+        {kidToEdit && (
+            <FormField
+              control={form.control}
               name="coinsBalance"
               render={({ field }) => (
                 <FormItem>
@@ -425,33 +447,82 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
             />
         )}
         
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="parentName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Parent's Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Emma Smith" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="parentPhone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Parent's Phone</FormLabel>
-                <FormControl>
-                  <Input placeholder="12345678" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Family Email Address (Optional)</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="family@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div>
+          <h3 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Parent / Guardian 1</h3>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="parentName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Emma Smith" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="parentPhone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="12345678" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <div>
+          <h3 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Parent / Guardian 2 (Optional)</h3>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="parent2Name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Smith" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="parent2Phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="12345678" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
         <FormField
           control={form.control}
