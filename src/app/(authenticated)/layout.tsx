@@ -7,8 +7,8 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Header } from '@/components/layout/header';
 
-// Routes that only admins can access
 const ADMIN_ONLY_PATHS = ['/dashboard', '/kids', '/volunteers', '/store/manage', '/store/gift'];
+const MULTIMEDIA_IC_ALLOWED_PATHS = ['/leaderboard', '/house-points'];
 
 export default function AuthenticatedLayout({
   children,
@@ -27,9 +27,11 @@ export default function AuthenticatedLayout({
     }
     if (role === 'welcomeIC') {
       const restricted = ADMIN_ONLY_PATHS.some((p) => pathname.startsWith(p));
-      if (restricted) {
-        router.push('/');
-      }
+      if (restricted) router.push('/');
+    }
+    if (role === 'multimediaIC') {
+      const allowed = MULTIMEDIA_IC_ALLOWED_PATHS.some((p) => pathname.startsWith(p));
+      if (!allowed) router.push('/leaderboard');
     }
   }, [user, loading, role, router, pathname]);
 
@@ -40,6 +42,11 @@ export default function AuthenticatedLayout({
   if (role === 'welcomeIC') {
     const restricted = ADMIN_ONLY_PATHS.some((p) => pathname.startsWith(p));
     if (restricted) return null;
+  }
+
+  if (role === 'multimediaIC') {
+    const allowed = MULTIMEDIA_IC_ALLOWED_PATHS.some((p) => pathname.startsWith(p));
+    if (!allowed) return null;
   }
 
   return (

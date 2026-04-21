@@ -547,6 +547,50 @@ export const redeemGift = async (kidId: string, giftId: string) => {
   });
 };
 
+export const awardCoins = async (kidId: string, amount: number, reason: string) => {
+  await forceTokenRefresh();
+  const kidRef = doc(db, 'kids', kidId);
+
+  return runTransaction(db, async (transaction) => {
+    const kidSnap = await transaction.get(kidRef);
+    if (!kidSnap.exists()) throw new Error('Kid not found');
+    const kidData = kidSnap.data();
+
+    const txRef = doc(collection(db, 'kids', kidId, 'coinTransactions'));
+    const activityRef = doc(collection(db, 'activities'));
+
+    transaction.update(kidRef, { coinsBalance: increment(amount) });
+
+    transaction.set(txRef, {
+      id: txRef.id,
+      kidId,
+      amount,
+      reason,
+      timestamp: serverTimestamp(),
+    });
+
+    transaction.set(activityRef, {
+      id: activityRef.id,
+      type: 'check-in',
+      kidId,
+      kidName: `${kidData.firstName} ${kidData.lastName}`,
+      photoUrl: kidData.photoUrl,
+      details: `Awarded ${amount} coins (${reason})`,
+      timestamp: serverTimestamp(),
+    });
+  }).catch((serverError) => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: `Transaction on ${kidRef.path}`,
+        operation: 'update',
+        requestResourceData: { coinsAward: amount },
+      })
+    );
+    throw serverError;
+  });
+};
+
 export const addVolunteer = async (data: any) => {
   await forceTokenRefresh();
   const newVolunteerRef = doc(collection(db, 'volunteers'));

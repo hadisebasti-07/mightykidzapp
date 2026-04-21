@@ -49,8 +49,11 @@ export function PublicKidForm({ onSuccess }: { onSuccess: () => void }) {
       nickname: '',
       dateOfBirth: '',
       gender: 'Male',
+      email: '',
       parentName: '',
       parentPhone: '',
+      parent2Name: '',
+      parent2Phone: '',
       allergies: '',
       medicalNotes: '',
     },
@@ -288,35 +291,87 @@ export function PublicKidForm({ onSuccess }: { onSuccess: () => void }) {
           />
         </div>
 
-        {/* Parent info */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="parentName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Parent / Guardian Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Emma Smith" maxLength={100} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="parentPhone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Parent / Guardian Phone</FormLabel>
-                <FormControl>
-                  <Input placeholder="12345678" maxLength={20} {...field} />
-                </FormControl>
-                <FormDescription>Digits only, 8–15 characters.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Email */}
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Family Email Address (Optional)</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="family@example.com" maxLength={100} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Parent 1 */}
+        <div>
+          <h3 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Parent / Guardian 1</h3>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="parentName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Emma Smith" maxLength={100} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="parentPhone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="12345678" maxLength={20} {...field} />
+                  </FormControl>
+                  <FormDescription>Digits only, 8–15 characters.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Parent 2 */}
+        <div>
+          <h3 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Parent / Guardian 2 (Optional)</h3>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="parent2Name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Smith" maxLength={100} {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="parent2Phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="12345678" maxLength={20} {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormDescription>Digits only, 8–15 characters.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         {/* Medical */}

@@ -62,6 +62,14 @@ service cloud.firestore {
     }
 
     /**
+     * Checks if the user has the Multimedia IC role.
+     * Multimedia ICs can only read kids (leaderboard) and read/write house scores.
+     */
+    function isMultimediaIC() {
+      return isSignedIn() && request.auth.token.multimediaIC == true;
+    }
+
+    /**
      * Verifies that a document exists for state-changing operations.
      */
     function isExistingDoc() {
@@ -151,8 +159,8 @@ service cloud.firestore {
      * @path /kids/{kidId}
      */
     match /kids/{kidId} {
-      allow get: if isAdmin() || isWelcomeIC();
-      allow list: if isAdmin() || isWelcomeIC();
+      allow get: if isAdmin() || isWelcomeIC() || isMultimediaIC();
+      allow list: if isAdmin() || isWelcomeIC() || isMultimediaIC();
       allow create: if isConsistentIdOnCreate(kidId);
       allow update: if (isAdmin() || isWelcomeIC()) && isExistingDoc() && isImmutableId();
       allow delete: if isAdmin() && isExistingDoc();
@@ -235,9 +243,17 @@ service cloud.firestore {
      * @path /houseScores/{houseId}
      */
     match /houseScores/{houseId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin() && isExistingDoc();
+      allow read: if isAdmin() || isMultimediaIC();
+      allow create: if isAdmin() || isMultimediaIC();
+      allow update: if (isAdmin() || isMultimediaIC()) && isExistingDoc();
+      allow delete: if isAdmin();
+    }
+
+    match /multimediaICs/{uid} {
+      allow get: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if false;
       allow delete: if isAdmin();
     }
   }

@@ -27,16 +27,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ImportKidsDialog } from '@/components/kids/import-dialog';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
+
+type ActiveFilters = {
+  genders: string[];
+  classes: string[];
+  houseColors: string[];
+};
+
+const EMPTY_FILTERS: ActiveFilters = { genders: [], classes: [], houseColors: [] };
 
 function KidsPage() {
   const [allKids, setAllKids] = useState<Kid[]>([]);
   const [loading, setLoading] = useState(true);
   const [kidToDelete, setKidToDelete] = useState<Kid | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,6 +75,17 @@ function KidsPage() {
     fetchKids();
   }, []);
 
+  const filterOptions = useMemo(() => {
+    const classes = [...new Set(allKids.map((k) => k.className).filter(Boolean) as string[])].sort();
+    const houseColors = [...new Set(allKids.map((k) => k.houseColor).filter(Boolean) as string[])].sort();
+    return { classes, houseColors };
+  }, [allKids]);
+
+  const activeFilterCount = useMemo(
+    () => activeFilters.genders.length + activeFilters.classes.length + activeFilters.houseColors.length,
+    [activeFilters]
+  );
+
   const filteredKids = useMemo(() => {
     let kidsToFilter = allKids;
 
@@ -65,18 +93,29 @@ function KidsPage() {
       const currentMonth = new Date().getMonth() + 1;
       kidsToFilter = kidsToFilter.filter((kid) => kid.birthdayMonth === currentMonth);
     }
-    
-    if (!searchTerm) {
-        return kidsToFilter;
+
+    if (activeFilters.genders.length > 0) {
+      kidsToFilter = kidsToFilter.filter((kid) => activeFilters.genders.includes(kid.gender));
     }
-    
+    if (activeFilters.classes.length > 0) {
+      kidsToFilter = kidsToFilter.filter((kid) => kid.className && activeFilters.classes.includes(kid.className));
+    }
+    if (activeFilters.houseColors.length > 0) {
+      kidsToFilter = kidsToFilter.filter((kid) => kid.houseColor && activeFilters.houseColors.includes(kid.houseColor));
+    }
+
+    if (!searchTerm) {
+      return kidsToFilter;
+    }
+
     const lowercasedTerm = searchTerm.toLowerCase();
-    return kidsToFilter.filter(kid => 
+    return kidsToFilter.filter(
+      (kid) =>
         kid.firstName.toLowerCase().includes(lowercasedTerm) ||
         kid.lastName.toLowerCase().includes(lowercasedTerm) ||
         kid.parentName.toLowerCase().includes(lowercasedTerm)
     );
-  }, [allKids, filter, searchTerm]);
+  }, [allKids, filter, searchTerm, activeFilters]);
 
   const filterTitle = useMemo(() => {
     if (filter === 'this_month_birthdays') {
@@ -85,8 +124,18 @@ function KidsPage() {
     return null;
   }, [filter]);
 
+  const toggleFilter = (key: keyof ActiveFilters, value: string) => {
+    setActiveFilters((prev) => {
+      const current = prev[key];
+      return {
+        ...prev,
+        [key]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value],
+      };
+    });
+  };
+
   const handleDeleteRequest = (kid: Kid) => {
-    setKidToDelete(kid);
+    setTimeout(() => setKidToDelete(kid), 0);
   };
 
   const handleDeleteKid = async () => {
@@ -135,25 +184,17 @@ function KidsPage() {
         'parentName', 'parentPhone', 'parent2Name', 'parent2Phone',
         'allergies', 'medicalNotes', 'coinsBalance', 'totalAttendance', 'createdAt'
       ];
-      
+
       const escapeCsvCell = (cellData: any) => {
-        if (cellData === undefined || cellData === null) {
-          return '';
-        }
+        if (cellData === undefined || cellData === null) return '';
         const stringData = String(cellData);
-        if (/[",\n]/.test(stringData)) {
-          return `"${stringData.replace(/"/g, '""')}"`;
-        }
+        if (/[",\n]/.test(stringData)) return `"${stringData.replace(/"/g, '""')}"`;
         return stringData;
       };
 
       const csvRows = [headers.join(',')];
-
       for (const kid of allKids) {
-        const values = headers.map(header => {
-          const value = (kid as any)[header];
-          return escapeCsvCell(value);
-        });
+        const values = headers.map((header) => escapeCsvCell((kid as any)[header]));
         csvRows.push(values.join(','));
       }
 
@@ -172,7 +213,6 @@ function KidsPage() {
         title: 'Export Complete',
         description: `${allKids.length} kid profiles have been downloaded.`,
       });
-
     } catch (error) {
       console.error('Failed to export kids:', error);
       toast({
@@ -240,10 +280,110 @@ function KidsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="lg" className="h-14 w-full sm:w-auto">
-              <SlidersHorizontal />
-              Filters
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="lg" className="relative h-14 w-full sm:w-auto">
+                  <SlidersHorizontal />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-4" align="end">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold">Filters</span>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={() => setActiveFilters(EMPTY_FILTERS)}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Gender</p>
+                  {(['Male', 'Female'] as const).map((g) => (
+                    <label key={g} className="flex items-center gap-2 cursor-pointer py-1">
+                      <Checkbox
+                        checked={activeFilters.genders.includes(g)}
+                        onCheckedChange={() => toggleFilter('genders', g)}
+                      />
+                      <span className="text-sm">{g}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {filterOptions.classes.length > 0 && (
+                  <>
+                    <Separator className="my-3" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Class</p>
+                      {filterOptions.classes.map((cls) => (
+                        <label key={cls} className="flex items-center gap-2 cursor-pointer py-1">
+                          <Checkbox
+                            checked={activeFilters.classes.includes(cls)}
+                            onCheckedChange={() => toggleFilter('classes', cls)}
+                          />
+                          <span className="text-sm">{cls}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {filterOptions.houseColors.length > 0 && (
+                  <>
+                    <Separator className="my-3" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">House</p>
+                      {filterOptions.houseColors.map((color) => (
+                        <label key={color} className="flex items-center gap-2 cursor-pointer py-1">
+                          <Checkbox
+                            checked={activeFilters.houseColors.includes(color)}
+                            onCheckedChange={() => toggleFilter('houseColors', color)}
+                          />
+                          <span className="text-sm capitalize">{color}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
+        {activeFilterCount > 0 && !filter && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.genders.map((g) => (
+              <Badge key={g} variant="secondary" className="gap-1">
+                {g}
+                <button onClick={() => toggleFilter('genders', g)} className="ml-1 hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            {activeFilters.classes.map((cls) => (
+              <Badge key={cls} variant="secondary" className="gap-1">
+                {cls}
+                <button onClick={() => toggleFilter('classes', cls)} className="ml-1 hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            {activeFilters.houseColors.map((color) => (
+              <Badge key={color} variant="secondary" className="gap-1 capitalize">
+                {color}
+                <button onClick={() => toggleFilter('houseColors', color)} className="ml-1 hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
           </div>
         )}
 
@@ -263,8 +403,9 @@ function KidsPage() {
             <div className="col-span-full py-10 text-center text-muted-foreground">
               <p>
                 No kids found
-                {filterTitle && ` with a birthday this month`}.
+                {filterTitle && ` with a birthday this month`}
                 {searchTerm && ` for "${searchTerm}"`}
+                {activeFilterCount > 0 && ` matching the selected filters`}.
               </p>
             </div>
           )}

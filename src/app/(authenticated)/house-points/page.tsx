@@ -7,7 +7,6 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Confetti } from '@/components/confetti';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,13 +19,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Trophy, Crown, RotateCcw, Plus } from 'lucide-react';
-import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import { withAdminOrMultimediaAuth } from '@/components/auth/with-admin-auth';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_POINTS = 5000;
+const MAX_POINTS = 10000;
 const BALLS_PER_ROW = 5;
 const BALL_ROWS = 12;
 const TOTAL_BALLS = BALLS_PER_ROW * BALL_ROWS; // 60
@@ -113,6 +112,39 @@ const HOUSE_CONFIG: Record<
 
 const QUICK_ADD = [10, 25, 50, 100];
 
+// ─── Falling ball overlay ─────────────────────────────────────────────────────
+
+type FallingBallData = { id: string; x: number; y: number; delay: number };
+
+function FallingBallOverlay({ ball, colorClass }: { ball: FallingBallData; colorClass: string }) {
+  // Start above the tube; transition is always-on so the state change triggers it reliably.
+  // Direct DOM mutations (ref approach) get clobbered when parent re-renders.
+  const [top, setTop] = useState(-(BALL_SIZE + 4));
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setTop(ball.y);
+      setOpacity(1);
+    }, ball.delay + 20);
+    return () => clearTimeout(t);
+  }, [ball.y, ball.delay]);
+
+  return (
+    <div
+      className={cn('absolute rounded-full z-10', colorClass)}
+      style={{
+        width: BALL_SIZE,
+        height: BALL_SIZE,
+        left: ball.x,
+        top,
+        opacity,
+        transition: 'top 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.05s',
+      }}
+    />
+  );
+}
+
 // ─── BallTube Component ───────────────────────────────────────────────────────
 
 function BallTube({
@@ -129,28 +161,59 @@ function BallTube({
   const config = HOUSE_CONFIG[score.id as HouseKey] ?? HOUSE_CONFIG.red;
   const filledCount = getFilledCount(score.points);
   const prevCountRef = useRef(filledCount);
-  const [animatingSet, setAnimatingSet] = useState<Set<number>>(new Set());
+  const prevPointsRef = useRef(score.points);
+  const [fallingBalls, setFallingBalls] = useState<FallingBallData[]>([]);
+  const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
   const [tubeShaking, setTubeShaking] = useState(false);
   const [scorePop, setScorePop] = useState(false);
+  const [deltas, setDeltas] = useState<{ id: string; amount: number }[]>([]);
   const [custom, setCustom] = useState('');
 
-  // Trigger ball-drop animation when new balls appear
   useEffect(() => {
-    const prev = prevCountRef.current;
-    if (filledCount > prev) {
-      const newSet = new Set<number>();
-      for (let i = prev; i < filledCount; i++) newSet.add(i);
-      setAnimatingSet(newSet);
-      setTubeShaking(true);
-      setScorePop(true);
-      const t1 = setTimeout(() => setAnimatingSet(new Set()), 900);
-      const t2 = setTimeout(() => setTubeShaking(false), 500);
-      const t3 = setTimeout(() => setScorePop(false), 450);
+    const prevCount = prevCountRef.current;
+    const prevPoints = prevPointsRef.current;
+    const gained = score.points - prevPoints;
+
+    if (gained <= 0) {
       prevCountRef.current = filledCount;
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+      prevPointsRef.current = score.points;
+      return;
     }
+
+    // Always: score pop + shake + floating delta
+    setScorePop(true);
+    setTubeShaking(true);
+    const deltaId = `${Date.now()}-${Math.random()}`;
+    setDeltas((d) => [...d, { id: deltaId, amount: gained }]);
+    const tDelta = setTimeout(() => setDeltas((d) => d.filter((x) => x.id !== deltaId)), 1200);
+    const t2 = setTimeout(() => setTubeShaking(false), 500);
+    const t3 = setTimeout(() => setScorePop(false), 450);
+
+    // New balls: falling animation
+    if (filledCount > prevCount) {
+      const balls: FallingBallData[] = [];
+      const hidden = new Set<number>();
+      for (let i = prevCount; i < filledCount; i++) {
+        const col = i % BALLS_PER_ROW;
+        const row = Math.floor(i / BALLS_PER_ROW);
+        const x = 8 + col * (BALL_SIZE + BALL_GAP);
+        const y = 8 + (BALL_ROWS - 1 - row) * (BALL_SIZE + BALL_GAP);
+        balls.push({ id: `${i}-${Date.now()}`, x, y, delay: (i - prevCount) * 80 });
+        hidden.add(i);
+      }
+      setFallingBalls(balls);
+      setHiddenIndices(hidden);
+      const cleanupMs = (filledCount - prevCount) * 80 + 750;
+      const t1 = setTimeout(() => { setFallingBalls([]); setHiddenIndices(new Set()); }, cleanupMs);
+      prevCountRef.current = filledCount;
+      prevPointsRef.current = score.points;
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(tDelta); };
+    }
+
     prevCountRef.current = filledCount;
-  }, [filledCount]);
+    prevPointsRef.current = score.points;
+    return () => { clearTimeout(t2); clearTimeout(t3); clearTimeout(tDelta); };
+  }, [filledCount, score.points]);
 
   const handleAdd = (pts: number) => {
     onAdd(score.id, pts);
@@ -191,7 +254,15 @@ function BallTube({
       </div>
 
       {/* Score */}
-      <div className="text-center leading-none">
+      <div className="relative text-center leading-none">
+        {deltas.map((d) => (
+          <span
+            key={d.id}
+            className={cn('absolute left-1/2 -translate-x-1/2 -top-2 text-lg font-black pointer-events-none animate-delta-float', config.scoreText)}
+          >
+            +{d.amount.toLocaleString()}
+          </span>
+        ))}
         <p
           className={cn(
             'text-5xl font-black tabular-nums transition-transform',
@@ -223,25 +294,25 @@ function BallTube({
           style={{ gap: BALL_GAP, width: BALLS_PER_ROW * BALL_SIZE + (BALLS_PER_ROW - 1) * BALL_GAP }}
         >
           {Array.from({ length: TOTAL_BALLS }).map((_, i) => {
-            const filled = i < filledCount;
-            const isNew = animatingSet.has(i);
+            // Hide the grid ball while its overlay counterpart is falling
+            const showFilled = i < filledCount && !hiddenIndices.has(i);
             return (
               <div
                 key={i}
                 className={cn(
                   'rounded-full transition-colors duration-200',
-                  filled ? config.ballFilled : config.ballEmpty,
-                  isNew && 'animate-ball-drop'
+                  showFilled ? config.ballFilled : config.ballEmpty,
                 )}
-                style={{
-                  width: BALL_SIZE,
-                  height: BALL_SIZE,
-                  animationDelay: isNew ? `${(i - (filledCount - animatingSet.size)) * 60}ms` : undefined,
-                }}
+                style={{ width: BALL_SIZE, height: BALL_SIZE }}
               />
             );
           })}
         </div>
+
+        {/* Falling ball overlays — transition from tube top to resting position */}
+        {fallingBalls.map((ball) => (
+          <FallingBallOverlay key={ball.id} ball={ball} colorClass={config.ballFilled} />
+        ))}
 
         {/* Glass shine */}
         <div
@@ -334,7 +405,6 @@ function BallTube({
 function HousePointsPage() {
   const [scores, setScores] = useState<HouseScore[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showConfetti, setShowConfetti] = useState(false);
   const { toast } = useToast();
 
   const fetchScores = useCallback(async () => {
@@ -357,9 +427,6 @@ function HousePointsPage() {
             : s
         )
       );
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
-
       // Background write — doesn't block the animation
       addHousePoints(houseId, pts).catch((err: any) => {
         console.error('[HousePoints] addHousePoints failed:', err);
@@ -406,8 +473,6 @@ function HousePointsPage() {
 
   return (
     <>
-      {showConfetti && <Confetti />}
-
       <div className="flex flex-col gap-8">
         <PageHeader
           title="House Points"
@@ -464,4 +529,4 @@ function HousePointsPage() {
   );
 }
 
-export default withAdminAuth(HousePointsPage);
+export default withAdminOrMultimediaAuth(HousePointsPage);

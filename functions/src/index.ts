@@ -16,11 +16,14 @@ async function setRoleClaim(uid: string, role: string | null) {
     // Reset role-related claims
     delete newClaims.admin;
     delete newClaims.welcomeIC;
+    delete newClaims.multimediaIC;
 
     if (role === "admin") {
       newClaims.admin = true;
     } else if (role === "welcome_ic") {
       newClaims.welcomeIC = true;
+    } else if (role === "multimedia_ic") {
+      newClaims.multimediaIC = true;
     }
 
     await admin.auth().setCustomUserClaims(uid, newClaims);
@@ -95,6 +98,44 @@ export const removeWelcomeICClaim = functions.firestore
       await setRoleClaim(uid, null);
     } catch (error) {
       functions.logger.error(`Error removing welcomeIC claim for ${uid}:`, error);
+    }
+
+    return null;
+  });
+
+// ─── Multimedia IC role ───────────────────────────────────────────────────────
+
+export const setMultimediaICClaim = functions.firestore
+  .document("multimediaICs/{uid}")
+  .onCreate(async (snap, context) => {
+    const { uid } = context.params;
+
+    functions.logger.log(`Setting multimediaIC claim for user: ${uid}`);
+
+    try {
+      await setRoleClaim(uid, "multimedia_ic");
+
+      return snap.ref.set(
+        { claimSetAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    } catch (error) {
+      functions.logger.error(`Error setting multimediaIC claim for ${uid}:`, error);
+      return null;
+    }
+  });
+
+export const removeMultimediaICClaim = functions.firestore
+  .document("multimediaICs/{uid}")
+  .onDelete(async (snap, context) => {
+    const { uid } = context.params;
+
+    functions.logger.log(`Removing multimediaIC claim for user: ${uid}`);
+
+    try {
+      await setRoleClaim(uid, null);
+    } catch (error) {
+      functions.logger.error(`Error removing multimediaIC claim for ${uid}:`, error);
     }
 
     return null;

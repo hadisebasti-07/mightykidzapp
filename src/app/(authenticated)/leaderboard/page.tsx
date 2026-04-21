@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Medal, Star } from 'lucide-react';
-import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import { withAdminOrMultimediaAuth } from '@/components/auth/with-admin-auth';
 import { cn } from '@/lib/utils';
 
 const HOUSE_COLORS = ['All', 'Red', 'Blue', 'Yellow', 'Green'] as const;
@@ -340,4 +340,4 @@ function LeaderboardPage() {
   );
 }
 
-export default withAdminAuth(LeaderboardPage);
+export default withAdminOrMultimediaAuth(LeaderboardPage);
