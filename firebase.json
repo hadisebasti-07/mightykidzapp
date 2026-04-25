@@ -19,7 +19,8 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "**/*.py",
-        "requirements.txt"
+        "requirements.txt",
+        "node_modules"
       ],
       "runtime": "nodejs20"
     }

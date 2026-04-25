@@ -140,3 +140,21 @@ export const removeMultimediaICClaim = functions.firestore
 
     return null;
   });
+
+// ─── Debug: force-set multimedia IC claim ────────────────────────────────────
+// Remove this after confirming claims work.
+
+export const debugSetMultimediaIC = functions.https.onRequest(async (req, res) => {
+  const uid = req.query.uid as string;
+  if (!uid) {
+    res.status(400).json({ error: "Missing uid query param" });
+    return;
+  }
+  try {
+    await admin.auth().setCustomUserClaims(uid, { multimediaIC: true });
+    const user = await admin.auth().getUser(uid);
+    res.json({ success: true, uid, claims: user.customClaims });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});

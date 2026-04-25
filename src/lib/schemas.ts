@@ -8,10 +8,14 @@ export const kidFormSchema = z.object({
   nickname: z.string().optional(),
   dateOfBirth: z.string({ required_error: "A date of birth is required."}).regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be in YYYY-MM-DD format." }),
   gender: z.enum(['Male', 'Female']),
-  className: z.enum(['discoverer', 'explorer', 'adventurer', 'warrior'], {
-    required_error: "You need to select a class.",
-  }),
-  houseColor: z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional(),
+  className: z.preprocess(
+    (val) => (!val || val === '__none__' ? undefined : val),
+    z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']).optional()
+  ),
+  houseColor: z.preprocess(
+    (val) => (!val || val === '__none__' ? undefined : val),
+    z.enum(['Red', 'Green', 'Blue', 'Yellow']).optional()
+  ),
   email: z.string().email({ message: 'Please enter a valid email address.' }).optional().or(z.literal('')),
   parentName: z.string().min(2, { message: 'Parent name is required.' }),
   parentPhone: z.string().min(8, { message: 'Phone number must be at least 8 digits.' }),

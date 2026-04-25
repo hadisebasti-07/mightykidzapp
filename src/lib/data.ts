@@ -19,6 +19,7 @@ import {
   where,
   Timestamp,
   writeBatch,
+  deleteField,
 } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats, HouseScore } from './types';
 import { type KidFormValues, type GiftFormValues, type PublicKidRegistrationValues, kidImportSchema } from './schemas';
@@ -258,11 +259,15 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
   }
   delete updateData.photoDataUrl;
 
-  const sanitizedData = Object.fromEntries(
+  if ('className' in data) updateData.className = data.className ?? deleteField();
+  if ('houseColor' in data) updateData.houseColor = data.houseColor ?? deleteField();
+  if ('barcode' in data) updateData.barcode = data.barcode || deleteField();
+
+  const sanitizedData: Record<string, unknown> = Object.fromEntries(
     Object.entries(updateData).filter(([_, v]) => v !== undefined)
   );
 
-  await updateDoc(kidRef, sanitizedData).catch((serverError) => {
+  await updateDoc(kidRef, sanitizedData as any).catch((serverError) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({

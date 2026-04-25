@@ -49,6 +49,8 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
     ? {
         ...kidToEdit,
         photoDataUrl: kidToEdit.photoUrl,
+        className: (kidToEdit.className || undefined) as KidFormValues['className'],
+        houseColor: (kidToEdit.houseColor || undefined) as KidFormValues['houseColor'],
       }
     : {
         photoDataUrl: '',
@@ -360,17 +362,18 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
             name="className"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Class</FormLabel>
+                <FormLabel>Class (Optional)</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value || '__none__'}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Assign a class" />
+                      <SelectValue placeholder="Not assigned" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="__none__">Not assigned</SelectItem>
                     <SelectItem value="discoverer">Discoverer</SelectItem>
                     <SelectItem value="explorer">Explorer</SelectItem>
                     <SelectItem value="adventurer">Adventurer</SelectItem>
@@ -386,17 +389,18 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
             name="houseColor"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>House Color</FormLabel>
+                <FormLabel>House Color (Optional)</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value || '__none__'}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Assign a house color" />
+                      <SelectValue placeholder="Not assigned" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="__none__">Not assigned</SelectItem>
                     <SelectItem value="Red">Red</SelectItem>
                     <SelectItem value="Green">Green</SelectItem>
                     <SelectItem value="Blue">Blue</SelectItem>
@@ -410,22 +414,29 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
         </div>
 
         {kidToEdit && (
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <FormItem>
+              <FormLabel>Kid ID</FormLabel>
+              <Input value={kidToEdit.id} readOnly className="bg-muted text-muted-foreground cursor-default" />
+              <FormDescription>Internal system ID — read only.</FormDescription>
+            </FormItem>
             <FormField
               control={form.control}
               name="barcode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Barcode ID</FormLabel>
+                  <FormLabel>Badge Barcode</FormLabel>
                   <FormControl>
                     <Input placeholder="MKC-001-240101" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormDescription>
-                    The barcode printed on this child's badge (e.g. MKC-064-240222).
+                    The barcode printed on this child's badge. Leave blank to unassign.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
         )}
 
         {kidToEdit && (

@@ -39,6 +39,17 @@ export default function AuthenticatedLayout({
     return null;
   }
 
+  if (!role) {
+    return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 text-center p-8">
+        <p className="text-lg font-semibold">Access Pending</p>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Your account has not been assigned a role yet. Please contact an admin.
+        </p>
+      </div>
+    );
+  }
+
   if (role === 'welcomeIC') {
     const restricted = ADMIN_ONLY_PATHS.some((p) => pathname.startsWith(p));
     if (restricted) return null;
