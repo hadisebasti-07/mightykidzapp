@@ -8,6 +8,10 @@ export const kidFormSchema = z.object({
   nickname: z.string().optional(),
   dateOfBirth: z.string({ required_error: "A date of birth is required."}).regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be in YYYY-MM-DD format." }),
   gender: z.enum(['Male', 'Female']),
+  status: z.preprocess(
+    (val) => (!val || val === '__none__' ? undefined : val),
+    z.enum(['regular', 'irregular', 'visitor', 'guest', 'graduated']).optional()
+  ),
   className: z.preprocess(
     (val) => (!val || val === '__none__' ? undefined : val),
     z.enum(['discoverer', 'explorer', 'adventurer', 'warrior']).optional()

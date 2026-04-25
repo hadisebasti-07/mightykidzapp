@@ -103,6 +103,7 @@ export const addKid = async (data: KidFormValues) => {
     createdAt: new Date().toISOString(),
     className: data.className,
     houseColor: data.houseColor || '',
+    status: data.status,
   };
 
   await setDoc(newKidRef, newKidData).catch((serverError) => {
@@ -259,6 +260,7 @@ export const updateKid = async (kidId: string, data: Partial<KidFormValues>) => 
   }
   delete updateData.photoDataUrl;
 
+  if ('status' in data) updateData.status = data.status ?? deleteField();
   if ('className' in data) updateData.className = data.className ?? deleteField();
   if ('houseColor' in data) updateData.houseColor = data.houseColor ?? deleteField();
   if ('barcode' in data) updateData.barcode = data.barcode || deleteField();

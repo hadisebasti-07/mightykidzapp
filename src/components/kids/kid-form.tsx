@@ -356,17 +356,14 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
             )}
           />
         </div>
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
           <FormField
             control={form.control}
             name="className"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Class (Optional)</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || '__none__'}
-                >
+                <Select onValueChange={field.onChange} value={field.value || '__none__'}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Not assigned" />
@@ -390,10 +387,7 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
             render={({ field }) => (
               <FormItem>
                 <FormLabel>House Color (Optional)</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || '__none__'}
-                >
+                <Select onValueChange={field.onChange} value={field.value || '__none__'}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Not assigned" />
@@ -405,6 +399,31 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
                     <SelectItem value="Green">Green</SelectItem>
                     <SelectItem value="Blue">Blue</SelectItem>
                     <SelectItem value="Yellow">Yellow</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status (Optional)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || '__none__'}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Not set" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="__none__">Not set</SelectItem>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="irregular">Irregular</SelectItem>
+                    <SelectItem value="visitor">Visitor</SelectItem>
+                    <SelectItem value="guest">Guest</SelectItem>
+                    <SelectItem value="graduated">Graduated</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
