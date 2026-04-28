@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { addKid, updateKid } from '@/lib/data';
 import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Switch } from '../ui/switch';
 import {
   Dialog,
   DialogTrigger,
@@ -45,12 +46,18 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
   const router = useRouter();
   const { toast } = useToast();
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const defaultValues: Partial<KidFormValues> = kidToEdit
     ? {
         ...kidToEdit,
         photoDataUrl: kidToEdit.photoUrl,
         className: (kidToEdit.className || undefined) as KidFormValues['className'],
         houseColor: (kidToEdit.houseColor || undefined) as KidFormValues['houseColor'],
+        firstVisitDate: kidToEdit.firstVisitDate || '',
+        invitedBy: kidToEdit.invitedBy || '',
+        tshirtIssued: kidToEdit.tshirtIssued ?? false,
+        idCardIssued: kidToEdit.idCardIssued ?? false,
       }
     : {
         photoDataUrl: '',
@@ -69,6 +76,10 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
         className: undefined,
         houseColor: undefined,
         coinsBalance: 0,
+        firstVisitDate: todayStr,
+        invitedBy: '',
+        tshirtIssued: false,
+        idCardIssued: false,
       };
 
   const form = useForm<KidFormValues>({
@@ -554,6 +565,71 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
             />
           </div>
         </div>
+        <div>
+          <h3 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Administrative Info</h3>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="firstVisitDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date of First Visit</FormLabel>
+                  <FormControl>
+                    <Input placeholder="YYYY-MM-DD" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormDescription>Auto-filled with today's date on creation.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="invitedBy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Invited By (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Name of person who invited" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="tshirtIssued"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <FormLabel className="text-base">T-shirt Issued</FormLabel>
+                    <FormDescription>Has this child received a T-shirt?</FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="idCardIssued"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <FormLabel className="text-base">ID Card Issued</FormLabel>
+                    <FormDescription>Has this child received an ID card?</FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="allergies"

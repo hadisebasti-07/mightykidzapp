@@ -29,6 +29,10 @@ export const kidFormSchema = z.object({
   medicalNotes: z.string().optional(),
   coinsBalance: z.coerce.number().int().min(0, { message: "Coins balance cannot be negative." }),
   barcode: z.string().optional(),
+  firstVisitDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be in YYYY-MM-DD format." }).optional().or(z.literal('')),
+  invitedBy: z.string().optional(),
+  tshirtIssued: z.boolean().default(false),
+  idCardIssued: z.boolean().default(false),
 });
 
 export type KidFormValues = z.infer<typeof kidFormSchema>;
@@ -62,10 +66,10 @@ export const kidImportSchema = z.object({
     message: 'Phone number must be empty or have at least 8 digits.'
   }).optional(),
   className: z.preprocess(
-    (val) => (typeof val === 'string' ? val.trim().toLowerCase() : val),
+    (val) => (typeof val === 'string' && val.trim() ? val.trim().toLowerCase() : undefined),
     z.enum(['discoverer', 'explorer', 'adventurer', 'warrior'], {
       errorMap: () => ({ message: "Class name is invalid. Must be one of 'discoverer', 'explorer', 'adventurer', 'warrior'." }),
-    })
+    }).optional()
   ),
   houseColor: z.preprocess(
       (val) => {

@@ -20,6 +20,9 @@ import {
   Timestamp,
   writeBatch,
   deleteField,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
 import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats, HouseScore } from './types';
 import { type KidFormValues, type GiftFormValues, type PublicKidRegistrationValues, kidImportSchema } from './schemas';
@@ -60,6 +63,7 @@ export async function addKidPublic(data: PublicKidRegistrationValues): Promise<v
     totalAttendance: 0,
     birthdayMonth: parseInt(dateString.split('-')[1], 10),
     createdAt: new Date().toISOString(),
+    firstVisitDate: new Date().toISOString().split('T')[0],
     className: '',
     houseColor: '',
   };
@@ -101,6 +105,10 @@ export const addKid = async (data: KidFormValues) => {
     totalAttendance: 0,
     birthdayMonth: parseInt(dateString.split('-')[1], 10),
     createdAt: new Date().toISOString(),
+    firstVisitDate: data.firstVisitDate || new Date().toISOString().split('T')[0],
+    invitedBy: data.invitedBy || '',
+    tshirtIssued: data.tshirtIssued ?? false,
+    idCardIssued: data.idCardIssued ?? false,
     className: data.className,
     houseColor: data.houseColor || '',
     status: data.status,
@@ -197,6 +205,159 @@ export const importKids = async (csvData: string) => {
   }
 
   return { successCount, errorCount, errors };
+};
+
+export const massUpdateKids = async (csvData: string): Promise<{
+  successCount: number;
+  errorCount: number;
+  errors: { line: number; error: string }[];
+}> => {
+  await forceTokenRefresh();
+
+  const kidsSnap = await getDocs(collection(db, 'kids'));
+  const byId = new Map<string, ReturnType<typeof doc>>();
+  const byBarcode = new Map<string, ReturnType<typeof doc>>();
+  kidsSnap.docs.forEach((d) => {
+    byId.set(d.id, d.ref);
+    const barcode = d.data().barcode;
+    if (barcode) byBarcode.set(barcode, d.ref);
+  });
+
+  const VALID_CLASSES = ['discoverer', 'explorer', 'adventurer', 'warrior'];
+  const VALID_COLORS  = ['Red', 'Green', 'Blue', 'Yellow'];
+  const VALID_STATUSES = ['regular', 'irregular', 'visitor', 'guest', 'graduated'];
+
+  const headers = [
+    'id', 'barcode', 'firstName', 'lastName', 'nickname', 'dateOfBirth', 'gender',
+    'email', 'parentName', 'parentPhone', 'parent2Name', 'parent2Phone',
+    'className', 'houseColor', 'status', 'allergies', 'medicalNotes',
+  ];
+
+  const lines = csvData.trim().split('\n');
+  const batch = writeBatch(db);
+  let successCount = 0;
+  let errorCount = 0;
+  const errors: { line: number; error: string }[] = [];
+
+  for (const [index, line] of lines.entries()) {
+    if (!line.trim()) continue;
+
+    const values = line.split(',').map((v) => v.trim());
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h] = values[i] || ''; });
+
+    // Skip header row
+    if (row.id === 'id' || row.barcode === 'barcode') continue;
+
+    const ref = (row.id && byId.get(row.id)) ?? (row.barcode && byBarcode.get(row.barcode));
+
+    if (!ref) {
+      // Kid not found — create with whatever fields are provided (no required fields)
+      const newRef = row.id ? doc(db, 'kids', row.id) : doc(collection(db, 'kids'));
+      const seed = (row.firstName || '') + (row.lastName || '') + newRef.id;
+      const newKidData: Record<string, unknown> = {
+        id: newRef.id,
+        firstName: row.firstName || '',
+        lastName: row.lastName || '',
+        nickname: row.nickname || '',
+        dateOfBirth: row.dateOfBirth || '',
+        gender: (row.gender === 'Male' || row.gender === 'Female') ? row.gender : '',
+        email: row.email || '',
+        parentName: row.parentName || '',
+        parentPhone: row.parentPhone || '',
+        parent2Name: row.parent2Name || '',
+        parent2Phone: row.parent2Phone || '',
+        barcode: row.barcode || newRef.id,
+        allergies: row.allergies || '',
+        medicalNotes: row.medicalNotes || '',
+        photoUrl: `https://picsum.photos/seed/${seed}/400/400`,
+        coinsBalance: 0,
+        totalAttendance: 0,
+        createdAt: new Date().toISOString(),
+      };
+      if (row.dateOfBirth && /^\d{4}-\d{2}-\d{2}$/.test(row.dateOfBirth)) {
+        newKidData.birthdayMonth = parseInt(row.dateOfBirth.split('-')[1], 10);
+      }
+      const normClassName = row.className?.trim().toLowerCase();
+      if (normClassName && VALID_CLASSES.includes(normClassName)) newKidData.className = normClassName;
+      const normColor = row.houseColor ? row.houseColor.trim().charAt(0).toUpperCase() + row.houseColor.trim().slice(1).toLowerCase() : '';
+      if (normColor && VALID_COLORS.includes(normColor)) newKidData.houseColor = normColor;
+      const normStatus0 = row.status?.toLowerCase();
+      if (normStatus0 && VALID_STATUSES.includes(normStatus0)) newKidData.status = normStatus0;
+      batch.set(newRef, newKidData);
+      successCount++;
+      continue;
+    }
+
+    const update: Record<string, unknown> = {};
+    if (row.firstName)  update.firstName  = row.firstName;
+    if (row.lastName)   update.lastName   = row.lastName;
+    if (row.nickname !== '')  update.nickname  = row.nickname;
+    if (row.dateOfBirth && /^\d{4}-\d{2}-\d{2}$/.test(row.dateOfBirth)) {
+      update.dateOfBirth = row.dateOfBirth;
+      update.birthdayMonth = parseInt(row.dateOfBirth.split('-')[1], 10);
+    }
+    if (row.gender === 'Male' || row.gender === 'Female') update.gender = row.gender;
+    if (row.email)       update.email       = row.email;
+    if (row.parentName)  update.parentName  = row.parentName;
+    if (row.parentPhone) update.parentPhone = row.parentPhone;
+    if (row.parent2Name  !== '') update.parent2Name  = row.parent2Name;
+    if (row.parent2Phone !== '') update.parent2Phone = row.parent2Phone;
+    if (VALID_CLASSES.includes(row.className))   update.className  = row.className;
+    if (VALID_COLORS.includes(row.houseColor))   update.houseColor = row.houseColor;
+    const normStatus = row.status?.toLowerCase();
+    if (normStatus && VALID_STATUSES.includes(normStatus)) update.status = normStatus;
+    if (row.allergies    !== '') update.allergies    = row.allergies;
+    if (row.medicalNotes !== '') update.medicalNotes = row.medicalNotes;
+    if (row.barcode && row.barcode !== row.id)   update.barcode    = row.barcode;
+
+    if (Object.keys(update).length === 0) {
+      errors.push({ line: index + 1, error: 'No recognisable fields to update — check column order.' });
+      errorCount++;
+      continue;
+    }
+
+    batch.update(ref, update as any);
+    successCount++;
+  }
+
+  if (successCount > 0) {
+    await batch.commit().catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'kids collection',
+        operation: 'update (batch)',
+        requestResourceData: { note: `Batch update for ${successCount} kids.` },
+      }));
+      throw serverError;
+    });
+  }
+
+  return { successCount, errorCount, errors };
+};
+
+export type KidSortField = 'createdAt' | 'firstName' | 'lastName' | 'coinsBalance';
+export type KidCursor = QueryDocumentSnapshot<DocumentData>;
+
+const PAGE_SIZE = 30;
+
+export const getKidsPaginated = async (
+  sortField: KidSortField,
+  sortDir: 'asc' | 'desc',
+  cursor?: KidCursor
+): Promise<{ kids: Kid[]; cursor: KidCursor | null; hasMore: boolean }> => {
+  await forceTokenRefresh();
+  const kidsCol = collection(db, 'kids');
+  const q = cursor
+    ? query(kidsCol, orderBy(sortField, sortDir), startAfter(cursor), limit(PAGE_SIZE + 1))
+    : query(kidsCol, orderBy(sortField, sortDir), limit(PAGE_SIZE + 1));
+  const snap = await getDocs(q);
+  const hasMore = snap.docs.length > PAGE_SIZE;
+  const docs = hasMore ? snap.docs.slice(0, PAGE_SIZE) : snap.docs;
+  return {
+    kids: docs.map((d) => ({ id: d.id, ...d.data() } as Kid)),
+    cursor: docs.at(-1) ?? null,
+    hasMore,
+  };
 };
 
 export const getKids = async (): Promise<Kid[]> => {

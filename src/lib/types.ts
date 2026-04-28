@@ -21,6 +21,10 @@ export type Kid = {
   houseColor?: string;
   barcode?: string;
   status?: 'regular' | 'irregular' | 'visitor' | 'guest' | 'graduated';
+  firstVisitDate?: string;
+  invitedBy?: string;
+  tshirtIssued?: boolean;
+  idCardIssued?: boolean;
 };
 
 export type Gift = {
