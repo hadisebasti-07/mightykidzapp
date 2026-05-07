@@ -151,7 +151,7 @@ service cloud.firestore {
       allow create: if isAdmin() || isWelcomeIC();
       allow read: if isAdmin() || isWelcomeIC();
       allow update: if false;
-      allow delete: if false;
+      allow delete: if isAdmin() || isWelcomeIC();
     }
 
     /**
@@ -174,7 +174,7 @@ service cloud.firestore {
         allow list: if isAdmin() || isWelcomeIC();
         allow create: if (isAdmin() || isWelcomeIC()) && isConsistentIdOnCreate(attendanceId) && isConsistentParentLinkOnCreate(kidId);
         allow update: if isAdmin() && isExistingDoc() && isImmutableId() && isImmutableParentLink();
-        allow delete: if isAdmin() && isExistingDoc();
+        allow delete: if (isAdmin() || isWelcomeIC()) && isExistingDoc();
       }
 
       /**

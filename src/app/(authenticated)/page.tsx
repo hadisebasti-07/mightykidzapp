@@ -14,8 +14,10 @@ import {
   CheckCircle2,
   Users,
   Zap,
+  RotateCcw,
+  ClipboardList,
 } from 'lucide-react';
-import { getKids, getRecentActivities, checkInKid, getTodayCheckedInKidIds } from '@/lib/data';
+import { getKids, getRecentActivities, checkInKid, getTodayCheckedInKidIds, deleteCheckIn } from '@/lib/data';
 import { Kid } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
@@ -110,6 +112,8 @@ export default function HomePage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkedInKidIds, setCheckedInKidIds] = useState<Set<string>>(new Set());
   const [loadingInitial, setLoadingInitial] = useState(true);
+  const [sessionCheckIns, setSessionCheckIns] = useState<Array<{ kid: Kid; attendanceId: string }>>([]);
+  const [undoingId, setUndoingId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const allKidsRef = useRef(allKids);
@@ -153,7 +157,8 @@ export default function HomePage() {
     setKidForSuccessOverlay({ ...kid, coinsBalance: kid.coinsBalance + 10 });
     setShowSuccess(true);
     try {
-      await checkInKid(kid.id);
+      const { attendanceId } = await checkInKid(kid.id);
+      setSessionCheckIns(prev => [{ kid: { ...kid, coinsBalance: kid.coinsBalance + 10 }, attendanceId }, ...prev]);
       const refreshed = await getKids();
       setAllKids(refreshed);
       setSearchResults(prev => prev.map(k => k.id === kid.id ? refreshed.find(r => r.id === kid.id) || k : k));
@@ -163,6 +168,22 @@ export default function HomePage() {
       setShowSuccess(false);
       setKidForSuccessOverlay(null);
       setCheckedInKidIds(prev => { const s = new Set(prev); s.delete(kid.id); return s; });
+    }
+  }, [toast]);
+
+  const handleUndoCheckIn = useCallback(async (kidId: string, attendanceId: string, kidName: string) => {
+    setUndoingId(attendanceId);
+    try {
+      await deleteCheckIn(kidId, attendanceId);
+      setCheckedInKidIds(prev => { const s = new Set(prev); s.delete(kidId); return s; });
+      setSessionCheckIns(prev => prev.filter(c => c.attendanceId !== attendanceId));
+      const refreshed = await getKids();
+      setAllKids(refreshed);
+      toast({ title: 'Check-in undone', description: `${kidName}'s check-in has been reversed.` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Undo Failed', description: e.message || 'Could not undo. Please try again.' });
+    } finally {
+      setUndoingId(null);
     }
   }, [toast]);
 
@@ -346,6 +367,48 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
+
+        {/* ── This Session: undo panel ── */}
+        {sessionCheckIns.length > 0 && (
+          <div className="mx-auto w-full max-w-3xl space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">This Session</h2>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{sessionCheckIns.length}</span>
+            </div>
+            {sessionCheckIns.map(({ kid, attendanceId }) => {
+              const house = kid.houseColor ? HOUSE_STYLES[kid.houseColor] : null;
+              const isUndoing = undoingId === attendanceId;
+              return (
+                <div key={attendanceId}
+                  className={`flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-sm sm:gap-4 sm:p-4
+                    ${house ? `border-l-4 ${house.border}` : 'border-l-4 border-l-primary/30'}`}
+                >
+                  <Avatar className="h-12 w-12 shrink-0 sm:h-14 sm:w-14">
+                    <AvatarImage src={kid.photoUrl} alt={kid.firstName} />
+                    <AvatarFallback className={`font-bold ${house ? house.fallback : 'bg-primary/10 text-primary'}`}>
+                      {kid.firstName.charAt(0)}{kid.lastName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <p className="truncate text-base font-bold">{kid.firstName} {kid.lastName}</p>
+                    <p className="text-xs text-muted-foreground">Checked in this session</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => handleUndoCheckIn(kid.id, attendanceId, `${kid.firstName} ${kid.lastName}`)}
+                    disabled={isUndoing}
+                  >
+                    <RotateCcw className={`mr-1.5 h-3.5 w-3.5 ${isUndoing ? 'animate-spin' : ''}`} />
+                    {isUndoing ? 'Undoing…' : 'Undo'}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* ── Search results ── */}
         {searchResults.length > 0 && (

@@ -11,14 +11,26 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getKidById, awardCoins } from '@/lib/data';
-import { Kid } from '@/lib/types';
+import { getKidById, awardCoins, getKidAttendances, deleteCheckIn } from '@/lib/data';
+import { Kid, AttendanceRecord } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams } from 'next/navigation';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, Plus } from 'lucide-react';
+import { Coins, Plus, CalendarDays, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
+import { format } from 'date-fns';
 
 const QUICK_AMOUNTS = [10, 20, 50];
 
@@ -34,19 +46,26 @@ function EditKidPage() {
   const [customAmount, setCustomAmount] = useState('');
   const [reason, setReason] = useState('');
   const [awarding, setAwarding] = useState(false);
+  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
+  const [attendanceToDelete, setAttendanceToDelete] = useState<AttendanceRecord | null>(null);
+  const [deletingAttendance, setDeletingAttendance] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!id) return;
     const fetchKid = async () => {
       try {
-        const kidData = await getKidById(id);
+        const [kidData, attendanceData] = await Promise.all([
+          getKidById(id),
+          getKidAttendances(id),
+        ]);
         if (kidData) {
           setKid(kidData);
           setCoinsBalance(kidData.coinsBalance);
         } else {
           setError(`Kid with id ${id} not found.`);
         }
+        setAttendances(attendanceData);
       } catch (fetchError) {
         console.error("Failed to fetch kid:", fetchError);
         setError("Failed to load kid's profile. Please try again.");
@@ -71,6 +90,22 @@ function EditKidPage() {
       toast({ variant: 'destructive', title: 'Failed to award coins', description: 'Please try again.' });
     } finally {
       setAwarding(false);
+    }
+  };
+
+  const handleDeleteAttendance = async () => {
+    if (!kid || !attendanceToDelete) return;
+    setDeletingAttendance(true);
+    try {
+      await deleteCheckIn(kid.id, attendanceToDelete.id);
+      setAttendances(prev => prev.filter(a => a.id !== attendanceToDelete.id));
+      setCoinsBalance(prev => Math.max(0, prev - 10));
+      toast({ title: 'Attendance removed', description: `Check-in on ${format(attendanceToDelete.timestamp, 'MMM d, yyyy')} has been deleted.` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Delete Failed', description: 'Could not remove the attendance record. Please try again.' });
+    } finally {
+      setDeletingAttendance(false);
+      setAttendanceToDelete(null);
     }
   };
 
@@ -147,6 +182,46 @@ function EditKidPage() {
           </CardContent>
         </Card>
 
+        {/* Attendance History */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              Attendance History
+            </CardTitle>
+            <CardDescription>
+              {loading ? 'Loading…' : `${attendances.length} session${attendances.length !== 1 ? 's' : ''} recorded. Delete a record to reverse the check-in and return 10 coins.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : attendances.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No attendance records yet.</p>
+            ) : (
+              <ul className="divide-y">
+                {attendances.map(record => (
+                  <li key={record.id} className="flex items-center justify-between py-2.5">
+                    <span className="text-sm">{format(record.timestamp, 'EEEE, MMM d, yyyy')}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setAttendanceToDelete(record)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Profile Info */}
         <Card>
           <CardHeader>
@@ -173,6 +248,29 @@ function EditKidPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!attendanceToDelete} onOpenChange={() => setAttendanceToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this check-in?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete the attendance record for{' '}
+              <strong>{attendanceToDelete && format(attendanceToDelete.timestamp, 'EEEE, MMM d, yyyy')}</strong>{' '}
+              and deduct 10 coins from {kid?.firstName}'s balance. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAttendance}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAttendance}
+              disabled={deletingAttendance}
+              className={buttonVariants({ variant: 'destructive' })}
+            >
+              {deletingAttendance ? 'Removing…' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

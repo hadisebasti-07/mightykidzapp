@@ -24,7 +24,7 @@ import {
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore';
-import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats, HouseScore } from './types';
+import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats, HouseScore, AttendanceRecord, AttendanceReportRow } from './types';
 import { type KidFormValues, type GiftFormValues, type PublicKidRegistrationValues, kidImportSchema } from './schemas';
 import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
@@ -479,7 +479,7 @@ export const getTodayCheckedInKidIds = async (): Promise<string[]> => {
     }
 };
 
-export const checkInKid = async (kidId: string) => {
+export const checkInKid = async (kidId: string): Promise<{ attendanceId: string }> => {
   await forceTokenRefresh();
   const kidRef = doc(db, 'kids', kidId);
 
@@ -526,6 +526,8 @@ export const checkInKid = async (kidId: string) => {
         details: 'Checked in',
         timestamp: serverTimestamp()
     });
+
+    return { attendanceId: attendanceRef.id };
 
   }).catch((serverError) => {
     if (serverError.message !== "This kid has already been checked in today.") {
@@ -1025,5 +1027,110 @@ export const resetHousePoints = async (houseId: string): Promise<void> => {
     color: houseId,
     points: 0,
     updatedAt: new Date().toISOString(),
+  });
+};
+
+export const getKidAttendances = async (kidId: string): Promise<AttendanceRecord[]> => {
+  await forceTokenRefresh();
+  const q = query(
+    collection(db, 'kids', kidId, 'attendances'),
+    orderBy('timestamp', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({
+    id: d.id,
+    kidId: d.data().kidId ?? kidId,
+    kidName: d.data().kidName ?? '',
+    timestamp: (d.data().timestamp as Timestamp)?.toDate() ?? new Date(),
+  }));
+};
+
+export const getAttendanceReport = async (
+  startDate: Date
+): Promise<{ rows: AttendanceReportRow[]; totalSessions: number }> => {
+  await forceTokenRefresh();
+
+  const [kidsSnap, activitiesSnap] = await Promise.all([
+    getDocs(query(collection(db, 'kids'), orderBy('firstName', 'asc'))),
+    getDocs(query(
+      collection(db, 'activities'),
+      where('type', '==', 'check-in'),
+      where('timestamp', '>=', startDate),
+    )),
+  ]);
+
+  const kids = kidsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Kid));
+
+  const attendanceMap = new Map<string, number>();
+  const sessionDates = new Set<string>();
+
+  activitiesSnap.docs.forEach(d => {
+    const data = d.data();
+    const kidId = data.kidId as string;
+    const ts = (data.timestamp as Timestamp)?.toDate();
+    if (ts) {
+      sessionDates.add(ts.toISOString().split('T')[0]);
+    }
+    attendanceMap.set(kidId, (attendanceMap.get(kidId) ?? 0) + 1);
+  });
+
+  const totalSessions = sessionDates.size;
+
+  const rows: AttendanceReportRow[] = kids.map(kid => {
+    const attended = attendanceMap.get(kid.id) ?? 0;
+    return {
+      kidId: kid.id,
+      firstName: kid.firstName,
+      lastName: kid.lastName,
+      className: kid.className,
+      houseColor: kid.houseColor,
+      photoUrl: kid.photoUrl,
+      status: kid.status,
+      attended,
+      totalSessions,
+      percentage: totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0,
+    };
+  }).sort((a, b) => b.percentage - a.percentage || b.attended - a.attended);
+
+  return { rows, totalSessions };
+};
+
+export const deleteCheckIn = async (kidId: string, attendanceId: string): Promise<void> => {
+  await forceTokenRefresh();
+
+  const attendanceRef = doc(db, 'kids', kidId, 'attendances', attendanceId);
+  const attendanceSnap = await getDoc(attendanceRef);
+  if (!attendanceSnap.exists()) throw new Error('Attendance record not found');
+
+  const ts = (attendanceSnap.data().timestamp as Timestamp)?.toDate() ?? new Date();
+  const dayStart = new Date(ts);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(ts);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const activityQuery = query(
+    collection(db, 'activities'),
+    where('type', '==', 'check-in'),
+    where('kidId', '==', kidId),
+    where('timestamp', '>=', dayStart),
+    where('timestamp', '<=', dayEnd)
+  );
+  const activitiesSnap = await getDocs(activityQuery);
+
+  const kidRef = doc(db, 'kids', kidId);
+  const batch = writeBatch(db);
+  batch.delete(attendanceRef);
+  activitiesSnap.docs.forEach(d => batch.delete(d.ref));
+  batch.update(kidRef, {
+    coinsBalance: increment(-10),
+    totalAttendance: increment(-1),
+  });
+
+  await batch.commit().catch((serverError) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: attendanceRef.path,
+      operation: 'delete',
+    }));
+    throw serverError;
   });
 };

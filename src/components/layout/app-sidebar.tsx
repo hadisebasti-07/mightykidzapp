@@ -21,6 +21,7 @@ import {
   LogOut,
   Trophy,
   Flame,
+  CalendarCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -33,6 +34,7 @@ const adminNavItems = [
   { href: '/', label: 'Check-In', icon: ScanLine },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/kids', label: 'Kids', icon: Users },
+  { href: '/attendance', label: 'Attendance', icon: CalendarCheck },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/house-points', label: 'House Points', icon: Flame },
   { href: '/store', label: 'Store', icon: Gift },

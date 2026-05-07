@@ -73,6 +73,26 @@ export type HouseScore = {
   updatedAt: string;
 };
 
+export type AttendanceRecord = {
+  id: string;
+  kidId: string;
+  kidName: string;
+  timestamp: Date;
+};
+
+export type AttendanceReportRow = {
+  kidId: string;
+  firstName: string;
+  lastName: string;
+  className?: string;
+  houseColor?: string;
+  photoUrl: string;
+  status?: string;
+  attended: number;
+  totalSessions: number;
+  percentage: number;
+};
+
 export const chartConfig = {
   attendance: {
     label: 'Attendance',
