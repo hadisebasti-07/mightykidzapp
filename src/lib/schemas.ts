@@ -175,6 +175,25 @@ export const publicKidRegistrationSchema = z.object({
 
 export type PublicKidRegistrationValues = z.infer<typeof publicKidRegistrationSchema>;
 
+export const logisticsFormSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  description: z.string().optional(),
+  category: z.enum(['costume', 'game-equipment', 'skit-prop', 'craft-supply', 'decoration', 'av-tech', 'teaching-material', 'consumable', 'other']),
+  quantity: z.coerce.number().int().min(0, { message: 'Quantity cannot be negative.' }),
+  condition: z.enum(['good', 'fair', 'poor', 'needs-repair']),
+  location: z.string().optional(),
+  notes: z.string().optional(),
+  photoDataUrl: z.string().optional(),
+  expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format.' }).optional().or(z.literal('')),
+  purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format.' }).optional().or(z.literal('')),
+  purchaseCost: z.coerce.number().min(0, { message: 'Cost cannot be negative.' }).optional(),
+  supplier: z.string().optional(),
+  reorderLink: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  lastUsedFor: z.string().optional(),
+  assignedTo: z.string().optional(),
+});
+export type LogisticsFormValues = z.infer<typeof logisticsFormSchema>;
+
 export const giftFormSchema = z.object({
     name: z.string().min(2, { message: 'Gift name must be at least 2 characters.' }),
     description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),

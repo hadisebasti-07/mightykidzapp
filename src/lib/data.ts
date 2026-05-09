@@ -24,8 +24,8 @@ import {
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore';
-import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats, HouseScore, AttendanceRecord, AttendanceReportRow } from './types';
-import { type KidFormValues, type GiftFormValues, type PublicKidRegistrationValues, kidImportSchema } from './schemas';
+import type { Kid, Gift, Volunteer, RecentActivity, DashboardStats, HouseScore, AttendanceRecord, AttendanceReportRow, LogisticsItem } from './types';
+import { type KidFormValues, type GiftFormValues, type PublicKidRegistrationValues, type LogisticsFormValues, kidImportSchema } from './schemas';
 import { errorEmitter } from './firebase/error-emitter';
 import { FirestorePermissionError } from './firebase/errors';
 
@@ -1129,6 +1129,98 @@ export const deleteCheckIn = async (kidId: string, attendanceId: string): Promis
   await batch.commit().catch((serverError) => {
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: attendanceRef.path,
+      operation: 'delete',
+    }));
+    throw serverError;
+  });
+};
+
+// ─── Logistics ────────────────────────────────────────────────────────────────
+
+export const addLogisticsItem = async (data: LogisticsFormValues): Promise<void> => {
+  await forceTokenRefresh();
+  const newItemRef = doc(collection(db, 'logistics'));
+  const now = new Date().toISOString();
+  const newItemData: LogisticsItem = {
+    ...data,
+    id: newItemRef.id,
+    description: data.description || '',
+    location: data.location || '',
+    notes: data.notes || '',
+    photoUrl: data.photoDataUrl || '',
+    expiryDate: data.expiryDate || '',
+    purchaseDate: data.purchaseDate || '',
+    purchaseCost: data.purchaseCost ?? undefined,
+    supplier: data.supplier || '',
+    reorderLink: data.reorderLink || '',
+    lastUsedFor: data.lastUsedFor || '',
+    assignedTo: data.assignedTo === '__none__' ? '' : (data.assignedTo || ''),
+    createdAt: now,
+    updatedAt: now,
+  };
+  delete (newItemData as any).photoDataUrl;
+  await setDoc(newItemRef, newItemData).catch((serverError) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: newItemRef.path,
+      operation: 'create',
+      requestResourceData: newItemData,
+    }));
+    throw serverError;
+  });
+};
+
+export const getLogisticsItems = async (): Promise<LogisticsItem[]> => {
+  await forceTokenRefresh();
+  try {
+    const logisticsCol = collection(db, 'logistics');
+    const q = query(logisticsCol, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as LogisticsItem));
+  } catch (error: any) {
+    console.error('[Data] Error fetching logistics items:', error);
+    if (error?.code === 'permission-denied') {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'logistics', operation: 'list' }));
+    }
+    return [];
+  }
+};
+
+export const getLogisticsItemById = async (itemId: string): Promise<LogisticsItem | null> => {
+  await forceTokenRefresh();
+  try {
+    const itemRef = doc(db, 'logistics', itemId);
+    const itemSnap = await getDoc(itemRef);
+    if (!itemSnap.exists()) return null;
+    return { id: itemSnap.id, ...itemSnap.data() } as LogisticsItem;
+  } catch (error: any) {
+    console.error('[Data] Error fetching logistics item:', error);
+    return null;
+  }
+};
+
+export const updateLogisticsItem = async (itemId: string, data: LogisticsFormValues): Promise<void> => {
+  await forceTokenRefresh();
+  const itemRef = doc(db, 'logistics', itemId);
+  const updateData: Record<string, any> = { ...data, updatedAt: new Date().toISOString() };
+  if (data.photoDataUrl) updateData.photoUrl = data.photoDataUrl;
+  if (data.assignedTo === '__none__') updateData.assignedTo = '';
+  delete updateData.photoDataUrl;
+  await updateDoc(itemRef, updateData).catch((serverError) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: itemRef.path,
+      operation: 'update',
+      requestResourceData: updateData,
+    }));
+    throw serverError;
+  });
+};
+
+export const deleteLogisticsItem = async (itemId: string): Promise<void> => {
+  await forceTokenRefresh();
+  const itemRef = doc(db, 'logistics', itemId);
+  await deleteDoc(itemRef).catch((serverError) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: itemRef.path,
       operation: 'delete',
     }));
     throw serverError;

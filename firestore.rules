@@ -239,6 +239,18 @@ service cloud.firestore {
     }
 
     /**
+     * @description Manages logistics inventory (costumes, props, stationery, etc.).
+     * @path /logistics/{itemId}
+     */
+    match /logistics/{itemId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isConsistentIdOnCreate(itemId);
+      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
+      allow delete: if isAdmin() && isExistingDoc();
+    }
+
+    /**
      * @description Manages house competition scores (red, blue, yellow, green).
      * @path /houseScores/{houseId}
      */

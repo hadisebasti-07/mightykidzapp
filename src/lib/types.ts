@@ -93,6 +93,27 @@ export type AttendanceReportRow = {
   percentage: number;
 };
 
+export type LogisticsItem = {
+  id: string;
+  name: string;
+  description?: string;
+  category: 'costume' | 'game-equipment' | 'skit-prop' | 'craft-supply' | 'decoration' | 'av-tech' | 'teaching-material' | 'consumable' | 'other';
+  quantity: number;
+  condition: 'good' | 'fair' | 'poor' | 'needs-repair';
+  location?: string;
+  notes?: string;
+  photoUrl?: string;
+  expiryDate?: string;
+  purchaseDate?: string;
+  purchaseCost?: number;
+  supplier?: string;
+  reorderLink?: string;
+  lastUsedFor?: string;
+  assignedTo?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export const chartConfig = {
   attendance: {
     label: 'Attendance',

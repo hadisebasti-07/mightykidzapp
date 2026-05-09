@@ -22,6 +22,7 @@ import {
   Trophy,
   Flame,
   CalendarCheck,
+  Package,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -39,6 +40,7 @@ const adminNavItems = [
   { href: '/house-points', label: 'House Points', icon: Flame },
   { href: '/store', label: 'Store', icon: Gift },
   { href: '/volunteers', label: 'Volunteers', icon: ClipboardList },
+  { href: '/logistics', label: 'Logistics', icon: Package },
 ];
 
 const welcomeICNavItems = [
