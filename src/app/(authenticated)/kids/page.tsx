@@ -47,6 +47,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ImportKidsDialog } from '@/components/kids/import-dialog';
 import { UpdateKidsDialog } from '@/components/kids/update-dialog';
+import { RosterDialog } from '@/components/kids/roster-dialog';
 import { withAdminAuth } from '@/components/auth/with-admin-auth';
 
 type ActiveFilters = {
@@ -107,7 +108,9 @@ function KidsPage() {
   }, [loadFirst, field, dir]);
 
   useEffect(() => {
-    if (!searchTerm) {
+    const hasFilters = activeFilters.genders.length > 0 || activeFilters.classes.length > 0 || activeFilters.houseColors.length > 0;
+    const needsPool = !!searchTerm || hasFilters;
+    if (!needsPool) {
       setSearchPool(null);
       return;
     }
@@ -115,7 +118,7 @@ function KidsPage() {
     setIsSearchLoading(true);
     getKids().then(setSearchPool).catch(console.error).finally(() => setIsSearchLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!searchTerm]);
+  }, [!!searchTerm, activeFilters.genders.length > 0 || activeFilters.classes.length > 0 || activeFilters.houseColors.length > 0]);
 
   const handleLoadMore = async () => {
     if (!cursor || isLoadingMore) return;
@@ -144,7 +147,7 @@ function KidsPage() {
   );
 
   const filteredKids = useMemo(() => {
-    let kids = searchTerm ? (searchPool ?? allKids) : allKids;
+    let kids = (searchTerm || activeFilterCount > 0) ? (searchPool ?? allKids) : allKids;
     if (filter === 'this_month_birthdays') {
       const currentMonth = new Date().getMonth() + 1;
       kids = kids.filter((k) => k.birthdayMonth === currentMonth);
@@ -260,6 +263,7 @@ function KidsPage() {
                 <Download />
                 Export All
               </Button>
+              <RosterDialog />
               <ImportKidsDialog />
               <UpdateKidsDialog />
               <Button asChild>
