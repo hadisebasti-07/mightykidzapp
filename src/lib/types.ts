@@ -20,7 +20,7 @@ export type Kid = {
   className?: string;
   houseColor?: string;
   barcode?: string;
-  status?: 'regular' | 'irregular' | 'visitor' | 'guest' | 'graduated';
+  status?: 'regular' | 'irregular' | 'visitor' | 'guest' | 'graduated' | 'not_attending';
   firstVisitDate?: string;
   invitedBy?: string;
   tshirtIssued?: boolean;

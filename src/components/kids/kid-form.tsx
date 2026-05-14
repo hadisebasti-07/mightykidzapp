@@ -435,6 +435,7 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
                     <SelectItem value="visitor">Visitor</SelectItem>
                     <SelectItem value="guest">Guest</SelectItem>
                     <SelectItem value="graduated">Graduated</SelectItem>
+                    <SelectItem value="not_attending">Not Attending</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

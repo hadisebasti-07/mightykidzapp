@@ -10,7 +10,7 @@ export const kidFormSchema = z.object({
   gender: z.enum(['Male', 'Female']),
   status: z.preprocess(
     (val) => (!val || val === '__none__' ? undefined : val),
-    z.enum(['regular', 'irregular', 'visitor', 'guest', 'graduated']).optional()
+    z.enum(['regular', 'irregular', 'visitor', 'guest', 'graduated', 'not_attending']).optional()
   ),
   className: z.preprocess(
     (val) => (!val || val === '__none__' ? undefined : val),

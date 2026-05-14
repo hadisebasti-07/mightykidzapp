@@ -225,7 +225,7 @@ export const massUpdateKids = async (csvData: string): Promise<{
 
   const VALID_CLASSES = ['discoverer', 'explorer', 'adventurer', 'warrior'];
   const VALID_COLORS  = ['Red', 'Green', 'Blue', 'Yellow'];
-  const VALID_STATUSES = ['regular', 'irregular', 'visitor', 'guest', 'graduated'];
+  const VALID_STATUSES = ['regular', 'irregular', 'visitor', 'guest', 'graduated', 'not_attending'];
 
   const headers = [
     'id', 'barcode', 'firstName', 'lastName', 'nickname', 'dateOfBirth', 'gender',
