@@ -171,6 +171,11 @@ export const publicKidRegistrationSchema = z.object({
     .max(1000, 'Medical notes must be 1000 characters or less.')
     .transform((v) => v.trim())
     .optional(),
+  invitedBy: z
+    .string()
+    .max(100, 'Invited by must be 100 characters or less.')
+    .transform((v) => v.trim())
+    .optional(),
 });
 
 export type PublicKidRegistrationValues = z.infer<typeof publicKidRegistrationSchema>;

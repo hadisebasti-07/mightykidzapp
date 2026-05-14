@@ -56,6 +56,7 @@ export function PublicKidForm({ onSuccess }: { onSuccess: () => void }) {
       parent2Phone: '',
       allergies: '',
       medicalNotes: '',
+      invitedBy: '',
     },
     mode: 'onChange',
   });
@@ -399,6 +400,20 @@ export function PublicKidForm({ onSuccess }: { onSuccess: () => void }) {
                 <Textarea placeholder="Asthma, etc." maxLength={1000} {...field} />
               </FormControl>
               <FormDescription>Max 1000 characters.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="invitedBy"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Invited By (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Name of person who invited you" maxLength={100} {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
