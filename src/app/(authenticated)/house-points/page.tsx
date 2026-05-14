@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Trophy, Crown, RotateCcw, Plus } from 'lucide-react';
+import { Crown, RotateCcw, Plus } from 'lucide-react';
 import { withAdminOrMultimediaAuth } from '@/components/auth/with-admin-auth';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -231,16 +231,20 @@ function BallTube({
   return (
     <div
       className={cn(
-        'flex flex-col items-center gap-4 rounded-3xl p-5 border transition-all duration-300',
+        'relative flex flex-col items-center gap-4 rounded-3xl p-5 border transition-all duration-300',
         `bg-gradient-to-b ${config.cardBg}`,
         isLeader
           ? 'border-yellow-300 shadow-xl shadow-yellow-100/60 ring-2 ring-yellow-300/50'
           : 'border-border shadow-sm'
       )}
     >
-      {/* House label */}
+      {/* Floating crown — absolutely positioned, no layout impact */}
+      {isLeader && (
+        <div className="absolute -top-8 inset-x-0 flex justify-center pointer-events-none animate-bounce">
+          <Crown className="size-14 text-yellow-500 fill-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.9)]" />
+        </div>
+      )}
       <div className="flex items-center gap-2">
-        {isLeader && <Crown className="size-5 text-yellow-500 fill-yellow-400" />}
         <span
           className={cn(
             'px-3 py-1 rounded-full text-sm font-bold',
@@ -250,7 +254,6 @@ function BallTube({
         >
           {config.label}
         </span>
-        {isLeader && <Crown className="size-5 text-yellow-500 fill-yellow-400" />}
       </div>
 
       {/* Score */}
@@ -469,7 +472,6 @@ function HousePointsPage() {
 
   const maxPoints = Math.max(...scores.map((s) => s.points), 0);
   const leaders = scores.filter((s) => s.points === maxPoints && maxPoints > 0);
-  const totalPoints = scores.reduce((sum, s) => sum + s.points, 0);
 
   return (
     <>
@@ -478,17 +480,6 @@ function HousePointsPage() {
           title="House Points"
           description="Fill your tube to claim victory!"
         />
-
-        {/* Total banner */}
-        {!loading && totalPoints > 0 && (
-          <div className="flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20 px-6 py-4">
-            <Trophy className="size-6 text-primary fill-primary/20" />
-            <span className="font-bold text-lg">
-              {totalPoints.toLocaleString()} total points across all houses
-            </span>
-            <Trophy className="size-6 text-primary fill-primary/20" />
-          </div>
-        )}
 
         {/* Tubes grid */}
         {loading ? (

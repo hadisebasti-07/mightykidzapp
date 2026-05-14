@@ -1,6 +1,12 @@
 'use server';
 import * as functions from "firebase-functions";
+import { defineString } from "firebase-functions/params";
 import * as admin from "firebase-admin";
+import * as nodemailer from "nodemailer";
+
+const MAIL_USER = defineString("MAIL_USER");
+const MAIL_PASS = defineString("MAIL_PASS");
+const MAIL_TO   = defineString("MAIL_TO");
 
 admin.initializeApp();
 
@@ -158,3 +164,57 @@ export const debugSetMultimediaIC = functions.https.onRequest(async (req, res) =
     res.status(500).json({ error: error.message });
   }
 });
+
+// ─── Email notification: new public child registration ────────────────────────
+
+export const notifyNewPublicRegistration = functions.firestore
+  .document("kids/{kidId}")
+  .onCreate(async (snap) => {
+    const kid = snap.data();
+
+    if (kid.registrationSource !== "public") return null;
+
+    const gmailUser  = MAIL_USER.value();
+    const gmailPass  = MAIL_PASS.value();
+    const adminEmail = MAIL_TO.value() || gmailUser;
+
+    if (!gmailUser || !gmailPass) {
+      functions.logger.warn("Email not configured. Add MAIL_USER and MAIL_PASS to functions/.env");
+      return null;
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: gmailUser, pass: gmailPass },
+    });
+
+    const registeredAt = kid.createdAt
+      ? new Date(kid.createdAt).toLocaleString("en-AU", { timeZone: "Asia/Kuala_Lumpur" })
+      : "Unknown";
+
+    const html = `
+      <h2>New Child Registration</h2>
+      <table cellpadding="6" style="border-collapse:collapse;font-family:sans-serif;">
+        <tr><td><strong>Name</strong></td><td>${kid.firstName} ${kid.lastName}${kid.nickname ? ` (${kid.nickname})` : ""}</td></tr>
+        <tr><td><strong>Date of Birth</strong></td><td>${kid.dateOfBirth}</td></tr>
+        <tr><td><strong>Gender</strong></td><td>${kid.gender}</td></tr>
+        <tr><td><strong>Parent 1</strong></td><td>${kid.parentName} — ${kid.parentPhone}</td></tr>
+        ${kid.parent2Name ? `<tr><td><strong>Parent 2</strong></td><td>${kid.parent2Name} — ${kid.parent2Phone}</td></tr>` : ""}
+        ${kid.email ? `<tr><td><strong>Family Email</strong></td><td>${kid.email}</td></tr>` : ""}
+        ${kid.invitedBy ? `<tr><td><strong>Invited By</strong></td><td>${kid.invitedBy}</td></tr>` : ""}
+        ${kid.allergies ? `<tr><td><strong>Allergies</strong></td><td>${kid.allergies}</td></tr>` : ""}
+        ${kid.medicalNotes ? `<tr><td><strong>Medical Notes</strong></td><td>${kid.medicalNotes}</td></tr>` : ""}
+        <tr><td><strong>Registered At</strong></td><td>${registeredAt}</td></tr>
+      </table>
+    `;
+
+    await transporter.sendMail({
+      from: `"MightyKidz" <${gmailUser}>`,
+      to: adminEmail,
+      subject: `New Registration: ${kid.firstName} ${kid.lastName}`,
+      html,
+    });
+
+    functions.logger.log(`Registration email sent for kid: ${kid.firstName} ${kid.lastName}`);
+    return null;
+  });

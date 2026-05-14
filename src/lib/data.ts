@@ -64,8 +64,10 @@ export async function addKidPublic(data: PublicKidRegistrationValues): Promise<v
     birthdayMonth: parseInt(dateString.split('-')[1], 10),
     createdAt: new Date().toISOString(),
     firstVisitDate: new Date().toISOString().split('T')[0],
+    invitedBy: data.invitedBy || '',
     className: '',
     houseColor: '',
+    registrationSource: 'public',
   };
   await setDoc(newKidRef, newKidData);
 }
