@@ -175,7 +175,9 @@ exports.notifyNewPublicRegistration = functions.firestore
     .document("kids/{kidId}")
     .onCreate(async (snap) => {
     const kid = snap.data();
-    if (kid.registrationSource !== "public")
+    const shouldNotify = kid.registrationSource === "public" ||
+        (kid.registrationSource === "internal" && kid.notifyOnCreate === true);
+    if (!shouldNotify)
         return null;
     const gmailUser = MAIL_USER.value();
     const gmailPass = MAIL_PASS.value();
