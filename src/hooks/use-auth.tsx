@@ -5,7 +5,7 @@ import { onIdTokenChanged, User } from '@/lib/firebase/auth';
 import { auth } from '@/lib/firebase/auth';
 import { Loader2 } from 'lucide-react';
 
-export type Role = 'admin' | 'welcomeIC' | 'multimediaIC' | null;
+export type Role = 'admin' | 'welcomeIC' | 'multimediaIC' | 'logisticIC' | null;
 
 type AuthContextType = {
   user: User | null;
@@ -14,6 +14,7 @@ type AuthContextType = {
   isAdmin: boolean;
   isWelcomeIC: boolean;
   isMultimediaIC: boolean;
+  isLogisticIC: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isWelcomeIC: false,
   isMultimediaIC: false,
+  isLogisticIC: false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -43,6 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRole('welcomeIC');
         } else if (tokenResult.claims.multimediaIC) {
           setRole('multimediaIC');
+        } else if (tokenResult.claims.logisticIC) {
+          setRole('logisticIC');
         } else {
           setRole(null);
         }
@@ -73,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: role === 'admin',
         isWelcomeIC: role === 'welcomeIC',
         isMultimediaIC: role === 'multimediaIC',
+        isLogisticIC: role === 'logisticIC',
       }}
     >
       {children}

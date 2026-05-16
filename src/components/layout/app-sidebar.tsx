@@ -53,6 +53,10 @@ const multimediaICNavItems = [
   { href: '/house-points', label: 'House Points', icon: Flame },
 ];
 
+const logisticICNavItems = [
+  { href: '/logistics', label: 'Logistics', icon: Package },
+];
+
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -72,6 +76,8 @@ export function AppSidebar() {
       ? welcomeICNavItems
       : role === 'multimediaIC'
       ? multimediaICNavItems
+      : role === 'logisticIC'
+      ? logisticICNavItems
       : [];
 
   const handleLogout = async () => {
@@ -144,17 +150,17 @@ export function AppSidebar() {
               alt="User"
             />
             <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-bold">
-              {role === 'admin' ? 'AD' : role === 'multimediaIC' ? 'MM' : 'WI'}
+              {role === 'admin' ? 'AD' : role === 'multimediaIC' ? 'MM' : role === 'logisticIC' ? 'LG' : 'WI'}
             </AvatarFallback>
           </Avatar>
 
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
               {user?.displayName ||
-                (role === 'admin' ? 'Admin User' : role === 'multimediaIC' ? 'Multimedia IC' : 'Welcome IC')}
+                (role === 'admin' ? 'Admin User' : role === 'multimediaIC' ? 'Multimedia IC' : role === 'logisticIC' ? 'Logistic IC' : 'Welcome IC')}
             </p>
             <p className="truncate text-xs text-sidebar-foreground/50">
-              {role === 'admin' ? 'Administrator' : role === 'multimediaIC' ? 'Multimedia IC' : 'Welcome IC'}
+              {role === 'admin' ? 'Administrator' : role === 'multimediaIC' ? 'Multimedia IC' : role === 'logisticIC' ? 'Logistic IC' : 'Welcome IC'}
             </p>
           </div>
 

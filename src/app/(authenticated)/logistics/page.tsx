@@ -52,7 +52,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import { withAdminOrLogisticAuth } from '@/components/auth/with-admin-auth';
 
 const CATEGORY_LABELS: Record<LogisticsItem['category'], string> = {
   costume: 'Costume',
@@ -331,4 +331,4 @@ function LogisticsPage() {
   );
 }
 
-export default withAdminAuth(LogisticsPage);
+export default withAdminOrLogisticAuth(LogisticsPage);

@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyNewPublicRegistration = exports.debugSetMultimediaIC = exports.removeMultimediaICClaim = exports.setMultimediaICClaim = exports.removeWelcomeICClaim = exports.setWelcomeICClaim = exports.removeAdminClaim = exports.setAdminClaim = void 0;
+exports.notifyNewPublicRegistration = exports.debugSetMultimediaIC = exports.removeLogisticICClaim = exports.setLogisticICClaim = exports.removeMultimediaICClaim = exports.setMultimediaICClaim = exports.removeWelcomeICClaim = exports.setWelcomeICClaim = exports.removeAdminClaim = exports.setAdminClaim = void 0;
 const functions = __importStar(require("firebase-functions"));
 const params_1 = require("firebase-functions/params");
 const admin = __importStar(require("firebase-admin"));
@@ -53,6 +53,7 @@ async function setRoleClaim(uid, role) {
         delete newClaims.admin;
         delete newClaims.welcomeIC;
         delete newClaims.multimediaIC;
+        delete newClaims.logisticIC;
         if (role === "admin") {
             newClaims.admin = true;
         }
@@ -61,6 +62,9 @@ async function setRoleClaim(uid, role) {
         }
         else if (role === "multimedia_ic") {
             newClaims.multimediaIC = true;
+        }
+        else if (role === "logistic_ic") {
+            newClaims.logisticIC = true;
         }
         await admin.auth().setCustomUserClaims(uid, newClaims);
         functions.logger.log(`✅ Updated claims for ${uid}:`, newClaims);
@@ -153,6 +157,34 @@ exports.removeMultimediaICClaim = functions.firestore
     }
     return null;
 });
+// ─── Logistic IC role ─────────────────────────────────────────────────────────
+exports.setLogisticICClaim = functions.firestore
+    .document("logisticsICs/{uid}")
+    .onCreate(async (snap, context) => {
+    const { uid } = context.params;
+    functions.logger.log(`Setting logisticIC claim for user: ${uid}`);
+    try {
+        await setRoleClaim(uid, "logistic_ic");
+        return snap.ref.set({ claimSetAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    }
+    catch (error) {
+        functions.logger.error(`Error setting logisticIC claim for ${uid}:`, error);
+        return null;
+    }
+});
+exports.removeLogisticICClaim = functions.firestore
+    .document("logisticsICs/{uid}")
+    .onDelete(async (snap, context) => {
+    const { uid } = context.params;
+    functions.logger.log(`Removing logisticIC claim for user: ${uid}`);
+    try {
+        await setRoleClaim(uid, null);
+    }
+    catch (error) {
+        functions.logger.error(`Error removing logisticIC claim for ${uid}:`, error);
+    }
+    return null;
+});
 // ─── Debug: force-set multimedia IC claim ────────────────────────────────────
 // Remove this after confirming claims work.
 exports.debugSetMultimediaIC = functions.https.onRequest(async (req, res) => {
@@ -208,9 +240,10 @@ exports.notifyNewPublicRegistration = functions.firestore
         <tr><td><strong>Registered At</strong></td><td>${registeredAt}</td></tr>
       </table>
     `;
+    const recipients = [adminEmail, "Nctieng@gmail.com", "Mightykidz@nlcc.org.sg"].join(", ");
     await transporter.sendMail({
         from: `"MightyKidz" <${gmailUser}>`,
-        to: adminEmail,
+        to: recipients,
         subject: `New Registration: ${kid.firstName} ${kid.lastName}`,
         html,
     });

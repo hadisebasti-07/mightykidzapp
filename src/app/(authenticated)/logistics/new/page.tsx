@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import { withAdminOrLogisticAuth } from '@/components/auth/with-admin-auth';
 
 function NewLogisticsItemPage() {
   return (
@@ -35,4 +35,4 @@ function NewLogisticsItemPage() {
   );
 }
 
-export default withAdminAuth(NewLogisticsItemPage);
+export default withAdminOrLogisticAuth(NewLogisticsItemPage);

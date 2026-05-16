@@ -70,6 +70,14 @@ service cloud.firestore {
     }
 
     /**
+     * Checks if the user has the Logistic IC role.
+     * Logistic ICs can read and write the logistics collection only.
+     */
+    function isLogisticIC() {
+      return isSignedIn() && request.auth.token.logisticIC == true;
+    }
+
+    /**
      * Verifies that a document exists for state-changing operations.
      */
     function isExistingDoc() {
@@ -243,11 +251,19 @@ service cloud.firestore {
      * @path /logistics/{itemId}
      */
     match /logistics/{itemId} {
-      allow get: if isAdmin();
+      allow get: if isAdmin() || isLogisticIC();
+      allow list: if isAdmin() || isLogisticIC();
+      allow create: if (isAdmin() || isLogisticIC()) && isConsistentIdOnCreate(itemId);
+      allow update: if (isAdmin() || isLogisticIC()) && isExistingDoc() && isImmutableId();
+      allow delete: if (isAdmin() || isLogisticIC()) && isExistingDoc();
+    }
+
+    match /logisticsICs/{uid} {
+      allow get: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
       allow list: if isAdmin();
-      allow create: if isAdmin() && isConsistentIdOnCreate(itemId);
-      allow update: if isAdmin() && isExistingDoc() && isImmutableId();
-      allow delete: if isAdmin() && isExistingDoc();
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     /**

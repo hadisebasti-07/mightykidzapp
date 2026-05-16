@@ -23,6 +23,7 @@ async function setRoleClaim(uid: string, role: string | null) {
     delete newClaims.admin;
     delete newClaims.welcomeIC;
     delete newClaims.multimediaIC;
+    delete newClaims.logisticIC;
 
     if (role === "admin") {
       newClaims.admin = true;
@@ -30,6 +31,8 @@ async function setRoleClaim(uid: string, role: string | null) {
       newClaims.welcomeIC = true;
     } else if (role === "multimedia_ic") {
       newClaims.multimediaIC = true;
+    } else if (role === "logistic_ic") {
+      newClaims.logisticIC = true;
     }
 
     await admin.auth().setCustomUserClaims(uid, newClaims);
@@ -147,6 +150,44 @@ export const removeMultimediaICClaim = functions.firestore
     return null;
   });
 
+// ─── Logistic IC role ─────────────────────────────────────────────────────────
+
+export const setLogisticICClaim = functions.firestore
+  .document("logisticsICs/{uid}")
+  .onCreate(async (snap, context) => {
+    const { uid } = context.params;
+
+    functions.logger.log(`Setting logisticIC claim for user: ${uid}`);
+
+    try {
+      await setRoleClaim(uid, "logistic_ic");
+
+      return snap.ref.set(
+        { claimSetAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    } catch (error) {
+      functions.logger.error(`Error setting logisticIC claim for ${uid}:`, error);
+      return null;
+    }
+  });
+
+export const removeLogisticICClaim = functions.firestore
+  .document("logisticsICs/{uid}")
+  .onDelete(async (snap, context) => {
+    const { uid } = context.params;
+
+    functions.logger.log(`Removing logisticIC claim for user: ${uid}`);
+
+    try {
+      await setRoleClaim(uid, null);
+    } catch (error) {
+      functions.logger.error(`Error removing logisticIC claim for ${uid}:`, error);
+    }
+
+    return null;
+  });
+
 // ─── Debug: force-set multimedia IC claim ────────────────────────────────────
 // Remove this after confirming claims work.
 
@@ -211,9 +252,11 @@ export const notifyNewPublicRegistration = functions.firestore
       </table>
     `;
 
+    const recipients = [adminEmail, "Nctieng@gmail.com", "Mightykidz@nlcc.org.sg"].join(", ");
+
     await transporter.sendMail({
       from: `"MightyKidz" <${gmailUser}>`,
-      to: adminEmail,
+      to: recipients,
       subject: `New Registration: ${kid.firstName} ${kid.lastName}`,
       html,
     });

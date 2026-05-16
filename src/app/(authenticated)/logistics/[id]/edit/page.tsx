@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { withAdminAuth } from '@/components/auth/with-admin-auth';
+import { withAdminOrLogisticAuth } from '@/components/auth/with-admin-auth';
 
 function EditLogisticsItemPage() {
   const params = useParams();
@@ -65,4 +65,4 @@ function EditLogisticsItemPage() {
   );
 }
 
-export default withAdminAuth(EditLogisticsItemPage);
+export default withAdminOrLogisticAuth(EditLogisticsItemPage);

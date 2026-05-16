@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/header';
 
 const ADMIN_ONLY_PATHS = ['/dashboard', '/kids', '/volunteers', '/store/manage', '/store/gift'];
 const MULTIMEDIA_IC_ALLOWED_PATHS = ['/leaderboard', '/house-points'];
+const LOGISTIC_IC_ALLOWED_PATHS = ['/logistics'];
 
 export default function AuthenticatedLayout({
   children,
@@ -32,6 +33,10 @@ export default function AuthenticatedLayout({
     if (role === 'multimediaIC') {
       const allowed = MULTIMEDIA_IC_ALLOWED_PATHS.some((p) => pathname.startsWith(p));
       if (!allowed) router.push('/leaderboard');
+    }
+    if (role === 'logisticIC') {
+      const allowed = LOGISTIC_IC_ALLOWED_PATHS.some((p) => pathname.startsWith(p));
+      if (!allowed) router.push('/logistics');
     }
   }, [user, loading, role, router, pathname]);
 
@@ -57,6 +62,11 @@ export default function AuthenticatedLayout({
 
   if (role === 'multimediaIC') {
     const allowed = MULTIMEDIA_IC_ALLOWED_PATHS.some((p) => pathname.startsWith(p));
+    if (!allowed) return null;
+  }
+
+  if (role === 'logisticIC') {
+    const allowed = LOGISTIC_IC_ALLOWED_PATHS.some((p) => pathname.startsWith(p));
     if (!allowed) return null;
   }
 

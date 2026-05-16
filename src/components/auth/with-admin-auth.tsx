@@ -32,6 +32,34 @@ export function withAdminAuth<P extends object>(
   return WithAdminAuth;
 }
 
+export function withAdminOrLogisticAuth<P extends object>(
+  WrappedComponent: React.ComponentType<P>
+) {
+  const WithAdminOrLogisticAuth = (props: P) => {
+    const { role, loading } = useAuth();
+    const router = useRouter();
+    const allowed = role === 'admin' || role === 'logisticIC';
+
+    useEffect(() => {
+      if (!loading && role && !allowed) {
+        router.replace('/');
+      }
+    }, [role, loading, router, allowed]);
+
+    if (loading || !role || !allowed) {
+      return (
+        <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    return <WrappedComponent {...props} />;
+  };
+  WithAdminOrLogisticAuth.displayName = `WithAdminOrLogisticAuth(${(WrappedComponent.displayName || WrappedComponent.name || 'Component')})`;
+  return WithAdminOrLogisticAuth;
+}
+
 export function withAdminOrMultimediaAuth<P extends object>(
   WrappedComponent: React.ComponentType<P>
 ) {

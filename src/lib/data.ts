@@ -83,6 +83,24 @@ export async function registerAsWelcomeIC(uid: string): Promise<void> {
   });
 }
 
+export async function getNextBarcode(dateOfBirth: string): Promise<string> {
+  const snap = await getDocs(collection(db, 'kids'));
+  let maxSeq = 0;
+  const barcodeRe = /^MKC-(\d+)-\d{6}$/;
+  snap.forEach((d) => {
+    const barcode: string = d.data().barcode || '';
+    const match = barcode.match(barcodeRe);
+    if (match) {
+      const seq = parseInt(match[1], 10);
+      if (seq > maxSeq) maxSeq = seq;
+    }
+  });
+  const nextSeq = String(maxSeq + 1).padStart(3, '0');
+  const [year, month, day] = dateOfBirth.split('-');
+  const ddmmyy = `${day}${month}${year.slice(2)}`;
+  return `MKC-${nextSeq}-${ddmmyy}`;
+}
+
 export const addKid = async (data: KidFormValues) => {
   await forceTokenRefresh();
   const dateString = data.dateOfBirth;
@@ -114,6 +132,8 @@ export const addKid = async (data: KidFormValues) => {
     className: data.className,
     houseColor: data.houseColor || '',
     status: data.status,
+    registrationSource: 'internal',
+    notifyOnCreate: data.notifyMinistryHead ?? false,
   };
 
   await setDoc(newKidRef, newKidData).catch((serverError) => {

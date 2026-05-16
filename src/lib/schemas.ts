@@ -33,6 +33,7 @@ export const kidFormSchema = z.object({
   invitedBy: z.string().optional(),
   tshirtIssued: z.boolean().default(false),
   idCardIssued: z.boolean().default(false),
+  notifyMinistryHead: z.boolean().default(true),
 });
 
 export type KidFormValues = z.infer<typeof kidFormSchema>;

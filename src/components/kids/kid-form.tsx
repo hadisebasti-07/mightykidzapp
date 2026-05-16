@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { Camera, UserCircle2, CameraOff, Info } from 'lucide-react';
+import { Camera, UserCircle2, CameraOff, Info, Bell, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { addKid, updateKid } from '@/lib/data';
+import { addKid, updateKid, getNextBarcode } from '@/lib/data';
 import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Switch } from '../ui/switch';
@@ -38,6 +38,16 @@ import {
   DialogDescription,
 } from '../ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { Kid } from '@/lib/types';
 import { kidFormSchema, type KidFormValues } from '@/lib/schemas';
 
@@ -80,6 +90,7 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
         invitedBy: '',
         tshirtIssued: false,
         idCardIssued: false,
+        notifyMinistryHead: true,
       };
 
   const form = useForm<KidFormValues>({
@@ -88,6 +99,8 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
     mode: 'onChange',
   });
 
+  const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
+  const [showBarcodeConfirm, setShowBarcodeConfirm] = useState(false);
   const [isCameraOpen, setCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] =
     useState<boolean | null>(null);
@@ -166,6 +179,32 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
         reader.readAsDataURL(file);
     }
   };
+
+  async function doGenerateBarcode() {
+    const dob = form.getValues('dateOfBirth');
+    if (!dob || !/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+      toast({ variant: 'destructive', title: 'Date of birth required', description: 'Enter a valid date of birth (YYYY-MM-DD) before generating a barcode.' });
+      return;
+    }
+    setIsGeneratingBarcode(true);
+    try {
+      const barcode = await getNextBarcode(dob);
+      form.setValue('barcode', barcode, { shouldValidate: true });
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to generate barcode', description: 'Could not fetch existing barcodes. Please try again.' });
+    } finally {
+      setIsGeneratingBarcode(false);
+    }
+  }
+
+  function handleGenerateBarcode() {
+    const existing = form.getValues('barcode');
+    if (kidToEdit && existing) {
+      setShowBarcodeConfirm(true);
+    } else {
+      doGenerateBarcode();
+    }
+  }
 
   async function onSubmit(data: KidFormValues) {
     try {
@@ -445,30 +484,39 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
         </div>
 
         {kidToEdit && (
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-            <FormItem>
-              <FormLabel>Kid ID</FormLabel>
-              <Input value={kidToEdit.id} readOnly className="bg-muted text-muted-foreground cursor-default" />
-              <FormDescription>Internal system ID — read only.</FormDescription>
-            </FormItem>
-            <FormField
-              control={form.control}
-              name="barcode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Badge Barcode</FormLabel>
-                  <FormControl>
-                    <Input placeholder="MKC-001-240101" {...field} value={field.value ?? ''} />
-                  </FormControl>
-                  <FormDescription>
-                    The barcode printed on this child's badge. Leave blank to unassign.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormItem>
+            <FormLabel>Kid ID</FormLabel>
+            <Input value={kidToEdit.id} readOnly className="bg-muted text-muted-foreground cursor-default" />
+            <FormDescription>Internal system ID — read only.</FormDescription>
+          </FormItem>
         )}
+        <FormField
+          control={form.control}
+          name="barcode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Badge Barcode</FormLabel>
+              <div className="flex gap-2">
+                <FormControl>
+                  <Input placeholder="MKC-001-240101" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGenerateBarcode}
+                  disabled={isGeneratingBarcode}
+                >
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  {isGeneratingBarcode ? 'Generating…' : 'Generate'}
+                </Button>
+              </div>
+              <FormDescription>
+                The barcode printed on this child's badge. Leave blank to unassign.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {kidToEdit && (
             <FormField
@@ -661,6 +709,26 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
             </FormItem>
           )}
         />
+        {!kidToEdit && (
+          <FormField
+            control={form.control}
+            name="notifyMinistryHead"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="flex items-center gap-3">
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <FormLabel className="text-base">Notify Ministry Head</FormLabel>
+                    <FormDescription>Send an email notification about this new registration.</FormDescription>
+                  </div>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
         <div className="flex justify-end gap-2">
           <Button
             type="button"
@@ -674,6 +742,27 @@ export function KidForm({ kidToEdit, onSuccess }: { kidToEdit?: Kid; onSuccess?:
           </Button>
         </div>
       </form>
+      <AlertDialog open={showBarcodeConfirm} onOpenChange={setShowBarcodeConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace existing barcode?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This child already has a barcode assigned (<strong>{form.getValues('barcode')}</strong>). Generating a new one will permanently replace it. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => { setShowBarcodeConfirm(false); doGenerateBarcode(); }}
+              className="border border-input bg-background text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Yes, replace it
+            </AlertDialogAction>
+            <AlertDialogCancel className="bg-primary text-primary-foreground shadow hover:bg-primary/90">
+              Keep existing
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }
